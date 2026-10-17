@@ -67,7 +67,7 @@ export async function getFootballSitemapEntries(): Promise<{slug:string;date:str
   const today=todayInBrasilia();
   const { data, error } = await getSupabase().from('matches')
     .select('slug,updated_at').eq('is_published',true).not('slug','is',null)
-    .gte('game_date',addDays(today,-14)).order('kickoff_at',{ascending:true})
+    .order('kickoff_at',{ascending:false})
     .limit(1500);
   if (error) { console.error('Falha ao gerar sitemap do futebol:',error.message); return []; }
   return (data||[]).filter(row=>!!row.slug).map(row=>({slug:row.slug,date:row.updated_at}));

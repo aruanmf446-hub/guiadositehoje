@@ -16,6 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: article.headline,
     description: article.summary,
+    robots: article.isAggregated ? {index:false,follow:true} : {index:true,follow:true},
     alternates: { canonical: `/noticias/${article.slug}` },
     openGraph: {
       type: 'article', locale: 'pt_BR',
@@ -33,7 +34,7 @@ export default async function ArticlePage({ params }: Props) {
   const article = await getArticle(slug);
   if (!article) notFound();
   const url = `${siteUrl}/noticias/${article.slug}`;
-  const schema = {
+  const schema = article.isAggregated ? null : {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: article.headline,
@@ -48,9 +49,9 @@ export default async function ArticlePage({ params }: Props) {
     ...(article.imageUrl ? { image: [article.imageUrl] } : {}),
   };
   return <div className="site">
-    <script type="application/ld+json" dangerouslySetInnerHTML={{
-      __html: JSON.stringify(schema).replace(/</g, '\\u003c'),
-    }} />
+    {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{
+      __html:JSON.stringify(schema).replace(/</g, '\\u003c'),
+    }}/>} 
     <SiteHeader />
     <main className="container article-container">
       <nav className="article-breadcrumb" aria-label="Localização">

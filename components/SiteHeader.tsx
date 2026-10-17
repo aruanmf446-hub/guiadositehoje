@@ -3,15 +3,16 @@ export function SiteHeader(){
   return <header className="site-header">
     <div className="site-header-inner">
       <Link href="/" className="brand" aria-label="Guia de Hoje, página inicial">
-        <span className="brand-mark" aria-hidden="true">G</span>
-        <span className="brand-name">Guia de Hoje</span>
+        <span className="brand-mark" aria-hidden="true">G.</span>
+        <span className="brand-name">guia<span>dehoje</span><b>.</b></span>
       </Link>
-      <nav aria-label="Seções" className="site-nav">
+      <nav className="site-nav" aria-label="Navegação principal">
+        <Link href="/#jogos">Jogos de hoje</Link>
         <Link href="/futebol">Futebol</Link>
-        <Link href="/futebol/onde-assistir">Onde assistir futebol</Link>
         <Link href="/noticias">Notícias</Link>
-        <Link href="/#assistir">Filmes e séries</Link>
+        <Link href="/filmes-series">Filmes e séries</Link>
       </nav>
+      <Link href="/buscar" className="nav-search" aria-label="Pesquisar no site"><span aria-hidden="true">⌕</span> Pesquisar</Link>
     </div>
   </header>;
 }

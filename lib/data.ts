@@ -30,6 +30,7 @@ export type NewsItem = {
   category: string;
   imageUrl?: string;
   imageAlt?: string;
+  isAggregated?: boolean;
   publishedAt: string;
   updatedAt: string;
   sourceName?: string;
@@ -47,4 +48,8 @@ export type WatchTitle = {
   platform: string;
   title: string;
   posterUrl?: string;
+  sourceUrl?: string;
+  watchUrl?: string;
+  availabilityStatus?: string;
+  synopsis?: string;
 };

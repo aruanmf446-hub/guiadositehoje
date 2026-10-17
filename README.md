@@ -59,3 +59,31 @@ O domínio canônico configurado é `https://guiadehoje.site`.
 Migrations versionadas em `supabase/migrations`. Banco real identificado por
 `kffzngznzjgioabtqxju`. As tabelas públicas usam RLS, sem permissões de escrita
 para visitantes.
+
+## Capa editorial e novos agentes (17/10/2026)
+
+- Página inicial: somente partidas **do dia de Brasília** ainda por começar;
+  partidas ao vivo só enquanto o início foi há menos de três horas.
+  Partidas encerradas saem da capa, mas permanecem em `/buscar?q=...` e nas
+  URLs originais indexáveis em `/futebol/[slug]`.
+- Pesquisa `/buscar`: times, campeonatos, notícias e filmes/séries (com
+  `robots=noindex` para não gerar páginas de resultados duplicadas).
+- Capa editorial: notícias com crédito e link à fonte, filmes em destaque, séries
+  e jogos futuros selecionados. Catálogo completo em `/filmes-series`.
+- Agente de notícias: fontes RSS Agência Brasil e BBC News Brasil, usando apenas
+  título/referência e chamadas para o material original; evita fingir que
+  reportagens de terceiros são apuração do Guia de Hoje. Essas chamadas
+  agregadas não entram como artigos autorais no sitemap e usam `noindex`.
+- Séries/programas: TVmaze (programação brasileira quando confirmada;
+  disponibilidade de outros territórios é indicada como não verificada).
+- Filmes: catálogo de referência de 2026 na Wikipedia; **não implica**
+  disponibilidade em streaming. Onde assistir permanece "a confirmar" sem
+  licenças/API regional verificada.
+- Cron `guia-de-hoje-editorial` a cada 15 min processa as respostas e
+  programa novas consultas: notícias às 6h, 9h, 12h, 15h, 18h e 21h,
+  filmes/séries às 7h, horário de Brasília. Execução é gratuita dentro dos
+  limites do Supabase e das fontes, sujeita a disponibilidade.
+- SEO: página de coleção de mídia, notícias com fonte, dados estruturados
+  na homepage; jogos antigos continuam no sitemap, limitado aos 1500
+  registros recentes. Os modelos de IA generativa ainda **não estão ativados**:
+  são coletores automáticos com regras, sem uso de API paga.
