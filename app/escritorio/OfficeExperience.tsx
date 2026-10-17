@@ -68,7 +68,7 @@ function Status({state}:{state:AgentState}){
 }
 function Station({agent,selected,onSelect}:{agent:OfficeAgent;selected:boolean;onSelect:()=>void}){
  const p=profiles.find(x=>x.id===agent.id)!;
- return <button type="button" className={'office-station station-'+agent.id+(selected?' station-selected':'')}
+ return <button type="button" data-state={agent.state} className={'office-station station-'+agent.id+(selected?' station-selected':'')}
   onClick={onSelect} aria-pressed={selected} aria-label={'Selecionar '+p.name+', '+stateLabels[agent.state]}
   style={{'--agent-accent':p.color} as CSSProperties}>
   <span className="station-bubble">{agent.state==='working'?'Em ação!':agent.state==='recent'?'Rodada feita':agent.state==='error'?'Atenção':'Próximo turno'}</span>
@@ -76,6 +76,10 @@ function Station({agent,selected,onSelect}:{agent:OfficeAgent;selected:boolean;o
    <span className="station-monitor"><span className="station-screen"><i/><i/><i/><b/></span></span>
    <span className="station-keyboard"/>
    <span className="station-cup"/>
+   <span className="station-prop" aria-hidden="true">{({
+    futebol:'⚽',noticias:'📰',filmes:'🍿',series:'📺',seo:'✎',design:'🎨'
+   } as Record<AgentId,string>)[agent.id]}</span>
+   <span className="station-notebook" aria-hidden="true"/>
   </span>
   <span className="station-chair"/>
   <span className="station-sprite"><Sprite id={agent.id}/></span>
@@ -224,10 +228,17 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
        <div className="scene-wall">
         <span className="scene-sign">GUIA <b>✳</b> HOJE</span>
         <div className="scene-windows"><div/><div/><div/></div>
+        <span className="scene-wall-shelf" aria-hidden="true"><i>📚</i><i>🐈</i><i>🌿</i></span>
+        <span className="scene-pendant pendant-one" aria-hidden="true"/><span className="scene-pendant pendant-two" aria-hidden="true"/>
         <span className="scene-clock">◷</span>
        </div>
        <div className="scene-floor">
-        <div className="scene-rug"/><div className="scene-cabinet"><i/><i/><i/></div>
+        <div className="scene-sunbeam" aria-hidden="true"/>
+        <div className="scene-rug"/>
+        <div className="scene-bookshelf" aria-hidden="true"><span>📚</span><span>🌿</span><span>🌎</span></div>
+        <div className="scene-cabinet"><i/><i/><i/></div>
+        <div className="scene-lounge" aria-hidden="true"><span className="lounge-back"/><span className="lounge-seat"/><span className="lounge-pillow"/><span className="lounge-table">📚</span></div>
+        <div className="scene-art-board" aria-hidden="true"><span>✿</span><span>▨</span><span>▧</span><span>♥</span></div>
         <div className="scene-plant plant-a"><span/><i/></div>
         <div className="scene-plant plant-b"><span/><i/></div>
         <div className="scene-water">▥<small>água</small></div>
