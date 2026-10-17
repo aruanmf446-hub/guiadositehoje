@@ -46,7 +46,8 @@ begin
   if turn_label='manha' then
     perform public.editorial_request('tv_br',br_day::text||'/v3/tv_br');
     perform public.editorial_request('tv_web',br_day::text||'/v3/tv_web');
-    requested:=4;
+    perform public.editorial_request('filmes',br_day::text||'/v3/filmes');
+    requested:=5;
   end if;
   return jsonb_build_object('requested',requested,'slot',turn_label);
 end; $function$
