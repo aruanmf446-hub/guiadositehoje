@@ -22,7 +22,7 @@ const dimensions=[320,375,390,430,768,1024,1440];
      await page.evaluate(()=>document.fonts.ready);
      const result=await page.evaluate(()=>{
       const rect=e=>e.getBoundingClientRect();
-      const vw=window.innerWidth;
+      const vw=document.documentElement.clientWidth;
       const site=document.querySelector('.site');
       const body=document.body;
       const html=document.documentElement;
@@ -41,7 +41,7 @@ const dimensions=[320,375,390,430,768,1024,1440];
        height:Math.round(rect(e).height),layout:getComputedStyle(e).display
       }));
       return {pageWidth:Math.max(html.scrollWidth,body.scrollWidth),
-       screen:vw,offenders,jumps,ctas,
+       screen:vw,innerWidth:window.innerWidth,offenders,jumps,ctas,
        heroLeft:site?.querySelector('.media-archive-hero h1')?Math.round(rect(site.querySelector('.media-archive-hero h1')).left):null};
      });
      console.log('LAYOUT',width,url,JSON.stringify(result));
