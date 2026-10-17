@@ -108,14 +108,19 @@ Deno.serve(async req=>{
    const source=candidate.evidence as string;
    const numerals=[...new Set((body.match(/\b\d+(?:[.,]\d+)?\b/g)||[]).filter(x=>x.length>=3))];
    const unverified=numerals.filter(v=>!(source+" "+article.headline).includes(v));
-   const valid=wordCount>=175&&wordCount<=600&&body.length>=950&&
-     body.includes("## ")&&draft.headline.length>=25&&draft.headline.length<=120&&
-     draft.seo_description.length>=90&&draft.seo_description.length<=200&&
-     draft.summary.length>=55&&draft.summary.length<=350&&
-     originalEnough(body,source)&&unverified.length===0;
-   if(!valid){
-     await finish("needs_review","Falha na checagem de estrutura/originalidade/fatos numéricos",wordCount);
-     return response({status:"needs_review",published:0});
+   const failedChecks=[
+     ...(wordCount<175||wordCount>600?["tamanho_do_texto"]:[]),
+     ...(body.length<950?["texto_curto"]:[]),
+     ...(!body.includes("## ")?["sem_subtitulos"]:[]),
+     ...(draft.headline.length<25||draft.headline.length>120?["titulo"]:[]),
+     ...(draft.seo_description.length<90||draft.seo_description.length>200?["metadescricao"]:[]),
+     ...(draft.summary.length<55||draft.summary.length>350?["resumo"]:[]),
+     ...(!originalEnough(body,source)?["texto_proximo_demais_da_fonte"]:[]),
+     ...(unverified.length>0?["numeros_sem_confirmacao"]:[]),
+   ];
+   if(failedChecks.length){
+     await finish("needs_review","Revisar: "+failedChecks.join(", "),wordCount);
+     return response({status:"needs_review",published:0,checks:failedChecks});
    }
    const updated=await db("news_articles?id=eq."+claimId,"PATCH",{
      headline:draft.headline.trim().slice(0,120),
