@@ -2,8 +2,8 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import type {CSSProperties} from 'react';
-import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot} from '@/lib/office';
-import {profiles} from '@/lib/office';
+import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot} from '@/lib/office-shared';
+import {profiles} from '@/lib/office-shared';
 
 type View='escritorio'|'equipe'|'entregas';
 const stateLabels:Record<AgentState,string>={
