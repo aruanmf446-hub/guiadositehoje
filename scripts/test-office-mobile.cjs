@@ -48,6 +48,7 @@ function check(ok,detail){assert.ok(ok,detail);}
     check(initial.document<=size.width+2,label+': horizontal document overflow '+JSON.stringify(initial));
     check(initial.body<=size.width+2,label+': horizontal body overflow');
     check(initial.sceneScroll<=initial.sceneClient+2,label+': horizontal scene overflow');
+    if(size.width<=700)check(initial.sceneClient>=size.width-55,label+': scene not using viewport: '+initial.sceneClient+' vs '+size.width);
     check(initial.nav.length===3,label+': navigation tabs not three');
     if(size.width<=700){
      const tabs=initial.nav;
