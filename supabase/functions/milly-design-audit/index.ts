@@ -1,6 +1,6 @@
 // Milly: auditoria visual semanal. GitHub OIDC, nenhum segredo em workflows.
 type Obj=Record<string,any>;
-const model='@cf/google/gemma-4-26b-a4b-it';
+const model='@cf/mistralai/mistral-small-3.1-24b-instruct';
 const respond=(a:unknown,s=200)=>Response.json(a,{status:s,headers:{'Cache-Control':'no-store'}});
 const decode=(s:string)=>atob(s.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(s.length/4)*4,'='));
 async function verify(request:Request){

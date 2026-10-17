@@ -70,7 +70,7 @@ function check(ok,detail){assert.ok(ok,detail);}
       await sheet.waitFor({state:'visible'});
       check((await sheet.locator('#office-agent-title').innerText()).replace(/\.$/,'').trim()===name,label+': wrong bottom-sheet agent '+name);
       check(await sheet.getByText('SITUAÇÃO COMPROVADA').isVisible(),label+': activity missing');
-      check(await sheet.getByText('PRÓXIMA TAREFA').isVisible(),label+': next task missing');
+      check(await sheet.locator('.office-task-summary small').filter({hasText:'PRÓXIMA TAREFA'}).first().isVisible(),label+': next task missing');
       check(await sheet.getByText('Meus últimos trabalhos').isVisible(),label+': deliveries missing');
       if(name==='Bento')await page.screenshot({path:'artifacts/office-mobile/sheet-'+label+'.png'});
       await sheet.getByRole('button',{name:'Fechar ficha do agente'}).click();
