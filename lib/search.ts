@@ -14,10 +14,7 @@ export async function searchAll(raw:string):Promise<SearchResult>{
   if(term.length<2)return {matches:[],articles:[],titles:[]};
   const db=getSupabase();
   const [games,news,watch]=await Promise.all([
-    db.from('matches').select('slug,home_team,away_team,league,kickoff_at,status')
-      .eq('is_published',true).or(
-        'home_team.ilike.%'+term+'%,away_team.ilike.%'+term+'%,league.ilike.%'+term+'%'
-      ).order('kickoff_at',{ascending:false}).limit(40),
+    db.rpc('search_guia_matches',{term}),
     db.from('news_articles').select('id,slug,headline,summary,category,published_at,updated_at,source_name,source_url,is_aggregated')
       .eq('status','published').ilike('headline','%'+term+'%')
       .order('published_at',{ascending:false}).limit(20),
