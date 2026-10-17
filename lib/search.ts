@@ -4,6 +4,10 @@ import type {Game, NewsItem,WatchTitle} from '@/lib/data';
 import {getPublishedNews,getWatchTitles} from '@/lib/content';
 import {getGameBySlug} from '@/lib/football';
 
+type MatchSearchRow={
+  slug:string;home_team:string;away_team:string;league:string;
+  kickoff_at:string;status:string;
+};
 export type SearchResult={
   matches:{slug:string;home:string;away:string;league:string;at:string;status:string}[];
   articles:NewsItem[];
@@ -25,7 +29,7 @@ export async function searchAll(raw:string):Promise<SearchResult>{
   if(news.error)console.error('Busca notícias:',news.error.message);
   if(watch.error)console.error('Busca catálogo:',watch.error.message);
   return {
-    matches:(games.data||[]).filter(g=>!!g.slug).map(g=>({
+    matches:((games.data||[]) as MatchSearchRow[]).filter(g=>!!g.slug).map(g=>({
       slug:g.slug,home:g.home_team,away:g.away_team,league:g.league,
       at:g.kickoff_at,status:g.status,
     })),
