@@ -1078,3 +1078,84 @@
  top:10%!important
 }
 .office-scene .station-nameplate{ height:38%!important }
+
+
+/* Correção pontual da ilustração: a arte de fundo já contém balões brancos.
+   O balão vivo do Supabase agora cobre integralmente o balão desenhado,
+   evitando o efeito de duas caixas sobrepostas. Sem esconder nenhum status. */
+.office-scene .office-station .station-bubble{
+ box-sizing:border-box!important;
+ z-index:4!important;
+ width:46%!important;
+ height:19%!important;
+ max-width:none!important;
+ min-height:0!important;
+ padding:5px 7px!important;
+ border:0!important;
+ border-radius:13px!important;
+ background:#fff!important;
+ box-shadow:0 0 0 3px #fff,0 4px 3px #a97d6130!important;
+ transform:none!important;
+ text-align:center!important;
+ white-space:normal!important;
+ overflow-wrap:break-word;
+ line-height:1.15!important;
+}
+.office-scene .office-station .station-bubble::after{
+ content:"";
+ position:absolute!important;
+ left:17%!important;
+ bottom:-9px!important;
+ width:14px!important;height:13px!important;
+ border:0!important;
+ background:#fff!important;
+ clip-path:polygon(0 0,100% 0,8% 100%);
+ filter:drop-shadow(0 2px 0 #ac88742a);
+}
+.office-scene .office-station:nth-child(1) .station-bubble{
+ top:4%!important;right:1%!important;
+}
+.office-scene .office-station:nth-child(2) .station-bubble{
+ top:5.5%!important;right:-6%!important;width:49%!important;
+}
+.office-scene .office-station:nth-child(3) .station-bubble{
+ top:6.5%!important;right:5%!important;
+}
+.office-scene .office-station:nth-child(4) .station-bubble{
+ top:-7%!important;right:-2%!important;
+}
+.office-scene .office-station:nth-child(5) .station-bubble{
+ top:-3%!important;right:8%!important;
+}
+.office-scene .office-station:nth-child(6) .station-bubble{
+ top:-6%!important;right:-1%!important;width:44%!important;
+}
+/* A pequena falha da textura no topo da franja de Milly é preenchida
+   por cachos pretos — parte puramente visual, sem mudar o botão clicável. */
+.office-scene .office-station.station-design::after{
+ content:"";
+ position:absolute!important;
+ z-index:2!important;
+ display:block!important;
+ pointer-events:none!important;
+ left:54.1%!important;
+ top:26.2%!important;
+ width:6.1%!important;
+ height:4%!important;
+ border-radius:50% 44% 52% 47%;
+ transform:rotate(-11deg);
+ background:radial-gradient(ellipse at 45% 42%,#302633 0%,#251f2a 65%,#231b27 100%);
+ box-shadow:1px -1px 0 -1px #2c2330;
+}
+@media(max-width:700px){
+ .office-scene .office-station .station-bubble{
+  padding:2px 3px!important;
+  border-radius:8px!important;
+  box-shadow:0 0 0 1.5px #fff,0 2px 2px #a97d612a!important;
+  font-size:clamp(7px,1.9vw,9px)!important;
+ }
+ .office-scene .office-station .station-bubble::after{
+  left:16%!important;bottom:-5px!important;
+  width:8px!important;height:7px!important;
+ }
+}
