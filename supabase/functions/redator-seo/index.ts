@@ -62,10 +62,16 @@ Deno.serve(async req=>{
  }catch{return response({error:"auth_failure"},503);}
  const apiToken=Deno.env.get("CLOUDFLARE_AI_TOKEN");
  if(!apiToken)return response({status:"waiting_for_cloudflare_ai_token",published:0},503);
- const maxPerDay=2;
- const today=new Date();today.setUTCHours(0,0,0,0);
- const daily:Row[]=await db("editorial_ai_runs?select=article_id&created_at=gte."+today.toISOString());
- if(daily.length>=maxPerDay)return response({status:"daily_limit",published:0});
+ // Duas publicações diárias no máximo; tentativas que falharam na revisão
+ // não podem impedir o próximo turno de redigir.
+ // A janela é o dia de Brasília (UTC-3), não a virada do dia em UTC.
+ const brNow=new Date(Date.now()-3*60*60*1000);
+ const startBrDay=new Date(Date.UTC(brNow.getUTCFullYear(),brNow.getUTCMonth(),brNow.getUTCDate(),3));
+ const daily:Row[]=await db("editorial_ai_runs?select=article_id,state&created_at=gte."+startBrDay.toISOString());
+ if(daily.filter(x=>x.state==="published").length>=2)
+   return response({status:"daily_publication_limit",published:0});
+ if(daily.length>=4)
+   return response({status:"daily_attempt_limit",published:0});
  const available:Row[]=await db("editorial_evidence?select=article_id,evidence,source_captured_at&order=source_captured_at.desc&limit=35");
  let candidate:Row|null=null,article:Row|null=null;
  for(const source of available){
