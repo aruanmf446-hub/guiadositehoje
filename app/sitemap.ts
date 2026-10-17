@@ -1,19 +1,20 @@
 import type { MetadataRoute } from 'next';
 import { getPublishedNews } from '@/lib/content';
+import { getFootballSitemapEntries } from '@/lib/football';
 import { siteUrl } from '@/lib/seo';
-
-export const revalidate = 900;
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const articles = await getPublishedNews(1000);
+export const revalidate=900;
+export default async function sitemap():Promise<MetadataRoute.Sitemap>{
+  const [articles,games]=await Promise.all([
+    getPublishedNews(1000),getFootballSitemapEntries(),
+  ]);
   return [
-    { url: siteUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
-    { url: `${siteUrl}/noticias`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
-    ...articles.map(article => ({
-      url: `${siteUrl}/noticias/${article.slug}`,
-      lastModified: new Date(article.updatedAt),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    })),
+    {url:siteUrl,lastModified:new Date(),changeFrequency:'daily',priority:1},
+    {url:siteUrl+'/noticias',lastModified:new Date(),changeFrequency:'daily',priority:.8},
+    {url:siteUrl+'/futebol',lastModified:new Date(),changeFrequency:'daily',priority:.9},
+    {url:siteUrl+'/futebol/onde-assistir',lastModified:new Date(),changeFrequency:'daily',priority:.8},
+    ...articles.map(x=>({url:siteUrl+'/noticias/'+x.slug,lastModified:new Date(x.updatedAt),
+      changeFrequency:'weekly' as const,priority:.7})),
+    ...games.map(g=>({url:siteUrl+'/futebol/'+g.slug,lastModified:new Date(g.date),
+      changeFrequency:'daily' as const,priority:.7})),
   ];
 }

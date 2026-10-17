@@ -1,70 +1,50 @@
 # Guia de Hoje
 
-Portal Next.js (App Router) com jogos do dia, notícias e guia de onde assistir.
-O conteúdo público é consultado do projeto Supabase **guiadehoje.site**.
+Portal Next.js com artigos, futebol, filmes e séries.
 
-## Rodar
+## Agente automático de futebol
+
+A Edge Function `supabase/functions/atualizar-jogos/index.ts` está implantada no projeto `kffzngznzjgioabtqxju`.
+O Supabase Cron executa a coleta **três vezes por dia**, 06h20, 12h20 e 18h20 (horário de Brasília), usando o agendamento **UTC 09h20, 15h20, 21h20**.
+
+- Consulta um horizonte de **hoje até os próximos 7 dias**, abrangendo campeonatos brasileiros e internacionais.
+- Importa partidas e horários com fuso explícito de Brasília, atualiza resultados, evita duplicações por `external_ref`.
+- Faz páginas por jogo em `/futebol/[slug]`, com título, descrição, Open Graph, `SportsEvent`, canonical e sitemap dinâmico.
+- Disponibiliza `/futebol` e `/futebol/onde-assistir`, com filtro de transmissões confirmadas.
+- Só atribui emissora brasileira se a fonte indicar inequivocamente região **BR/Brasil**. Caso contrário, mostra **transmissão a confirmar**.
+- Preserva transmissões inseridas com fonte independente. Nunca inventa canal ou cria artigos fictícios.
+- Guarda o estado em `agent_runs` (execuções) e bloqueia chamadas não autorizadas com token aleatório armazenado no Supabase em `agent_configuration`.
+
+**Fonte gratuita experimental:** ESPN Site API, **interface pública não oficial e sem SLA**. Ela pode mudar, deixar de responder ou não trazer os direitos de transmissão brasileiros. Confira direitos de reutilização, especialmente antes de monetizar. Para uma fonte contratual/estável, substituir o provedor sem alterar URLs ou banco.
+
+**Importante:** este é um agente de automação editorial e SEO por regras verificáveis, **sem modelo de IA generativa ativado** e sem consumo de tokens de IA. Um modelo generativo poderá ser acoplado depois, com sua própria chave e limites gratuitos, sem permitir que invente jogos ou transmissões.
+
+## Consultar execução
+
+Supabase SQL Editor:
+
+```sql
+select started_at,finished_at,status,games_found,games_written,broadcasts_verified,errors
+from public.agent_runs order by id desc limit 10;
+
+select game_date,league,home_team,away_team,broadcast,broadcast_status,slug
+from public.matches where is_published order by kickoff_at limit 40;
+
+select jobid,jobname,schedule,active from cron.job where jobname='guia-de-hoje-futebol-3x';
+```
+
+## Dados e publicação
+
+As tabelas `news_articles`, `matches` e `watch_titles` usam RLS. Leitura pública de conteúdos publicados, escrita apenas por processo autorizado. Nunca exponha chaves secretas de banco na Vercel nem no frontend.
+
+A home e as páginas se atualizam sem deploy a cada 5 minutos no Next.js (ISR). Os mecanismos de `sitemap.xml` e `robots.txt` usam como domínio canônico padrão **https://guiadehoje.site**. Confira a configuração real do domínio na Vercel antes de indexar.
+
+## Desenvolvimento
 
 ```bash
 npm ci
-npm run dev
 npm run typecheck
 npm run build
 ```
 
-As credenciais **publicáveis** do Supabase já estão definidas como padrão em
-`lib/supabase.ts`. Pode sobrescrevê-las com variáveis descritas em `.env.example`.
-**Nunca** exponha chave `service_role` / `secret` em frontend ou GitHub.
-
-## Banco de dados
-
-Projeto: `kffzngznzjgioabtqxju` (https://supabase.com/dashboard/project/kffzngznzjgioabtqxju).
-
-Tabelas criadas e protegidas por RLS:
-
-- `news_articles`: textos completos, fontes e workflow `draft/published/archived`
-- `matches`: partidas e transmissões por data em Brasília
-- `watch_titles`: títulos e plataformas para assistir
-
-A leitura pública só retorna artigos publicados (inclusive data de publicação vencida)
-e jogos/guias marcados como publicados. **Não há permissões públicas de escrita.**
-Para cadastrar/editar, utilize o Table Editor/SQL Editor do Supabase ou um processo
-de backend autenticado usando uma chave secreta exclusivamente no servidor.
-
-### Publicar uma notícia
-
-Na tabela `news_articles`, informe `slug` (minúsculas, hífens), `headline`,
-`summary`, `body`, `category`, `source_url`, `source_name`,
-`published_at` e `status='published'`.
-O corpo é texto simples: parágrafos separados por linha em branco.
-Um artigo publicado exige data, corpo e URL de fonte.
-Fotos devem ser de uso autorizado; informe `image_url` e `image_alt` somente
-quando houver direito de uso.
-
-Jogos e catálogos só aparecerão quando `is_published=true`. Partidas precisam
-de `game_date` (data de Brasília), `kickoff_at` e equipes.
-
-**O banco começa vazio.** A home mostra mensagens neutras e nunca apresenta dados
-inventados. A publicação automática por agente de IA não está ativada nesta entrega.
-
-## SEO
-
-- Títulos e descrições (homepage, arquivo de notícias e cada artigo)
-- Canonicals e Open Graph / Twitter Cards
-- Imagem de compartilhamento gerada pelo Next.js
-- `/robots.txt` e `/sitemap.xml` com URLs de artigos publicados
-- Dados estruturados `WebSite`, `Organization` e `NewsArticle`
-- Artigos com URLs permanentes em `/noticias/[slug]`
-
-O domínio canônico padrão é `https://guiadehoje.site`, baseado na identificação
-do site. Caso o domínio efetivo seja outro, defina `NEXT_PUBLIC_SITE_URL` na
-hospedagem **antes de indexar o site**.
-
-## Deploy
-
-Implante na Vercel como Next.js. O site pode ler o projeto Supabase diretamente,
-sem credenciais privadas nem novo banco. A home revalida conteúdo periodicamente
-(`300s`); não exige um redeploy para buscar novas publicações.
-
-Após configurar domínio e publicar, valide no Search Console:
-`https://guiadehoje.site/sitemap.xml`.
+Mudanças em SQL estão em `supabase/migrations`. As migrações já foram aplicadas no projeto Supabase informado.

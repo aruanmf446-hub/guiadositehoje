@@ -11,6 +11,14 @@ export type Game = {
   awayAbbr: string;
   awayScore?: number;
   broadcast?: string;
+  broadcastStatus?: 'confirmed' | 'unconfirmed';
+  broadcastSource?: string;
+  slug?: string;
+  gameDate?: string;
+  kickoffAt?: string;
+  seoDescription?: string;
+  sourceUrl?: string;
+  status?: string;
 };
 
 export type NewsItem = {
