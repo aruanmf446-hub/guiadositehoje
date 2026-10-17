@@ -644,3 +644,56 @@ html {scroll-padding-top:104px;}
  .game-paper-versus b{font-size:13px}
  .game-paper-channel{grid-column:2/4;margin-top:-2px}
 }
+
+
+/* 17/10 — revisão visual da Milly: editorial, leitura e largura mobile.
+   Corrige a causa pelo dimensionamento dos grid items, sem ocultar overflow global. */
+.media-detail-page,.media-detail-header,.media-detail-layout,
+.media-detail-copy,.media-detail-article,.media-related{min-width:0;max-width:100%}
+.media-detail-header > *, .media-detail-layout > * {min-width:0}
+.media-detail-copy h1,.media-detail-visual>strong,.media-related strong{overflow-wrap:anywhere}
+.media-detail-article p,.media-source-box a,.media-related-all{overflow-wrap:break-word}
+.media-detail-visual{min-width:0;max-width:100%}
+.media-detail-check{width:100%;min-width:0}
+.media-detail-check>div{min-width:0}
+.media-detail-layout{grid-template-columns:minmax(0,1.4fr) minmax(220px,.55fr)}
+/* A paleta escura já tem bom contraste. Reforça-se o texto auxiliar,
+   sem clarear o verde (o que reduziria a acessibilidade). */
+.media-archive-hero p{color:#435c50}
+.media-archive-number,.media-archive-info p{color:#405d4f}
+.media-archive-section-heading>span{color:#4b675a}
+.hero-copy>p{color:#52655e}
+.hero-search{margin-top:38px}
+.search-box button{
+ display:inline-flex;align-items:center;justify-content:center;
+ gap:7px;min-height:44px;line-height:1.15;text-align:center
+}
+.games-editorial .editorial-section-head h2{font-size:clamp(32px,3.8vw,47px)}
+.media-archive-jump{
+ display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;
+ gap:12px 23px;padding:24px 0 29px;border-bottom:1px solid #dce7df
+}
+.media-archive-jump a{display:inline-flex;align-items:center;min-height:44px;
+ font-weight:800;color:#075f56;text-underline-offset:4px}
+.media-archive-jump a:hover{text-decoration:underline}
+.media-archive-section{padding-top:48px}
+.media-archive-section-heading{gap:20px}
+@media(max-width:780px){
+ .media-detail-header,.media-detail-layout{grid-template-columns:minmax(0,1fr)}
+ .media-detail-article,.media-related{width:100%}
+ .media-detail-copy h1{font-size:clamp(33px,9vw,48px);line-height:1.08}
+ .media-detail-check{padding:15px}
+ .media-detail-visual:not(.has-image){min-height:280px}
+ .media-archive-hero{grid-template-columns:minmax(0,1fr)}
+ .media-archive-hero>div{min-width:0}
+ .media-archive-hero h1{overflow-wrap:anywhere}
+ .media-archive-jump{padding:18px 0 24px}
+ .media-archive-section{padding-top:40px}
+}
+@media(max-width:530px){
+ .hero-search{margin-top:30px}
+ .media-detail-page{padding-top:25px}
+ .media-detail-header{padding-bottom:40px}
+ .media-detail-layout{padding-top:38px}
+ .media-related a{overflow-wrap:anywhere}
+}

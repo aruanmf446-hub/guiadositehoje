@@ -1,0 +1,47 @@
+name: Validar Correções Milly
+on:
+  push:
+    paths:
+      - 'app/globals.css'
+      - 'app/filmes-series/**'
+      - 'scripts/test-milly-layout.cjs'
+      - '.github/workflows/validar-milly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsividade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Instalar Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Iniciar aplicação
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/milly-next.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/; then exit 0; fi
+            sleep 3
+          done
+          cat /tmp/milly-next.log
+          exit 1
+      - name: Validar overflow, navegação e CTA em 28 cenários
+        run: node scripts/test-milly-layout.cjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milly-correcoes-screenshots
+          path: artifacts/milly-fixes/
+          if-no-files-found: ignore
+      - if: failure()
+        run: cat /tmp/milly-next.log || true
