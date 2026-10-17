@@ -73,9 +73,11 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const [refreshError,setRefreshError]=useState('');
  const [detailsOpen,setDetailsOpen]=useState(false);
  const [mobileSheet,setMobileSheet]=useState(false);
+ const [interactive,setInteractive]=useState(false);
  const sheetRef=useRef<HTMLElement|null>(null);
  const closeButtonRef=useRef<HTMLButtonElement|null>(null);
  const lastTriggerRef=useRef<HTMLElement|null>(null);
+ useEffect(()=>{setInteractive(true);},[]);
  const refresh=useCallback(async()=>{
   try {
    const response=await fetch('/api/escritorio/status',{cache:'no-store'});
@@ -138,7 +140,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const recentDeliveries=selectedAgent.deliveries.slice(0,4);
  async function refreshNow(){setLoading(true);await refresh();setLoading(false);}
  const working=snapshot.agents.filter(a=>a.state==='working').length;
- return <div className="office-shell">
+ return <div className="office-shell" data-interactive={interactive?"true":"false"}>
   <aside className="office-side">
    <a className="office-logo" href="/escritorio" onClick={e=>{e.preventDefault();setView('escritorio');}}>
     <span className="office-logo-mark">G<span>✳</span></span>
