@@ -50,7 +50,7 @@ const focusFor:Record<AgentId,string>={
  series:'Conferir a programação de séries e atualizar informações disponíveis',
  seo:'Selecionar pautas, gerar matéria com IA e validar texto antes da publicação'
 };
-function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:number):OfficeMission{
+function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:number,jobs:Job[]):OfficeMission{
  const sorted=[...runs].sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
  const first=sorted[0];
  const fresh=first&&recent(first.time,14*60,now);
@@ -68,6 +68,13 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
  const stage=(title:string,detail:string,status:OfficeStep['status'],at:string|null=null):OfficeStep=>
   ({title,detail,status,at});
  const nextTime=nextAt?label(nextAt):'a definir';
+ const stageJob=jobs.find(j=>j.jobname===(id==='futebol'?
+   'guia-de-hoje-coletor-processar':'guia-de-hoje-editorial-processar'));
+ const processAt=id==='seo'?null:hasRequests&&stageJob?.active?
+   nextCron(stageJob.schedule,Date.parse(first.time)):null;
+ const processNote=processAt?
+   'Próxima etapa marcada para '+label(processAt)+' (Brasília)':
+   'Aguardando processamento registrado';
  const title=id==='futebol'?'Rodada de atualização do futebol':
   id==='noticias'?'Rodada de pesquisa editorial':id==='filmes'?'Pesquisa de filmes':
   id==='series'?'Pesquisa de séries':'Produção editorial com IA';
@@ -84,9 +91,9 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
   stage(id==='seo'?'Gerar texto por IA':'Receber e processar respostas',
    active?workDescription:completed.length?
     completed.length+' de '+todayRuns.length+' solicitações processadas':
-    hasRequests?'Solicitações aguardam conclusão':'Nenhuma execução registrada nesta rodada',
+    hasRequests?processNote:'Nenhuma execução registrada nesta rodada',
    active?'active':failed.length&&!completed.length?'error':completed.length?'done':'next',
-   active?first.time:latestEnd),
+   active?first.time:latestEnd||processAt),
   stage(id==='seo'?'Checar qualidade e publicação':'Registrar resultados no portal',
    hasRequests?(failed.length?failed.length+' falha(s) confirmada(s). ':
     '')+(processed>0?processed+' registro(s) confirmado(s)':'Nenhuma nova entrega confirmada'):
@@ -96,8 +103,6 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
    nextAt?'Nova janela às '+nextTime+' (horário de Brasília)':'Ainda sem próxima data confirmada',
    'next',nextAt)
  ];
- const parts=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',
-   hour:'2-digit',minute:'2-digit'}).format(new Date(now));
  return {title,focus:active?workDescription:focusFor[id],
   windowLabel:active?'Execução confirmada':hasRequests?'Rodada registrada':'Próximo ciclo',
   stages,recordedAt:latestEnd||first?.time||null,source:hasRequests?'executor':'agendamento',
@@ -154,7 +159,7 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
   run?'Execução no Supabase':last?'Publicação ou commit':'Nenhuma atividade confirmada';
  if(heartbeatFresh&&heartbeat)lastOrigin='Registro do agente no Supabase';
 
- const mission=missionFor(id,runs,nextAt,queue,now);
+ const mission=missionFor(id,runs,nextAt,queue,now,jobs);
  if(state==='working'){
   const active=runs.slice().sort((a,b)=>Date.parse(b.time)-Date.parse(a.time))
     .find(r=>['pending','running','processing','in_progress'].includes(r.status)&&recent(r.time,25,now));
@@ -231,7 +236,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   }
   if(!ai.error)for(const x of ai.data||[]){
    const original=String(x.state).toLowerCase();
-   const status=['ok','done','completed','success','succeeded'].includes(original)?'ok':
+   const status=['ok','done','completed','success','succeeded','published'].includes(original)?'ok':
     ['error','failed'].includes(original)?'error':
     ['needs_review'].includes(original)?'needs_review':
     ['running','processing','in_progress'].includes(original)?'running':'pending';
