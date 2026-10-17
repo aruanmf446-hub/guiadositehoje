@@ -16,7 +16,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   const {slug}=await params;
   const game=await getGameBySlug(slug);
   if(!game || !game.kickoffAt) return {title:'Partida não encontrada',robots:{index:false,follow:false}};
-  const title=`${game.home} x ${game.away}: horário, data e onde assistir`;
+  const title=`${game.home} x ${game.away} | ${game.league}: horário e onde assistir`;
   const desc=game.seoDescription ||
     `${game.home} x ${game.away} pela ${game.league} em ${dateText(game.kickoffAt)}. ${game.broadcast ? 'Onde assistir: '+game.broadcast : 'Transmissão a confirmar'}.`;
   return {
@@ -55,7 +55,9 @@ export default async function FootballMatchPage({params}:Props){
     <SiteHeader/>
     <main className="container article-container">
       <nav className="article-breadcrumb" aria-label="Localização">
-        <Link href="/">Início</Link> / <Link href="/futebol">Futebol</Link> / {game.league}
+        <Link href="/">Início</Link> / <Link href="/futebol">Futebol</Link> / {
+          game.competitionSlug ? <Link href={`/futebol/campeonatos/${game.competitionSlug}`}>{game.league}</Link> : game.league
+        }
       </nav>
       <article className="article-detail">
         <span className="kicker">{game.league}</span>
@@ -78,7 +80,8 @@ export default async function FootballMatchPage({params}:Props){
           <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer">Consultar calendário da partida ↗</a>
         </p>}
       </article>
-      <Link href="/futebol" className="all-news-link">← Todos os jogos</Link>
+      <Link href={game.competitionSlug?`/futebol/campeonatos/${game.competitionSlug}`:"/futebol"}
+        className="all-news-link">← Ver mais jogos</Link>
     </main>
     <SiteFooter/>
   </div>;

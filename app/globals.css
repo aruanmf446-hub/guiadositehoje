@@ -117,3 +117,11 @@ h1, h2, h3 { margin: 0; }
  .section-title { font-size: 28px; }
  .games-grid, .titles-grid { grid-template-columns: 1fr; }
 }
+
+.competition-nav { margin: 28px 0 6px; padding: 22px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.competition-nav h2 { font-family: var(--font-display); font-size: 22px; margin-bottom: 14px; }
+.competition-links { display: flex; gap: 10px; flex-wrap: wrap; }
+.competition-link { display: inline-flex; align-items: center; min-height: 44px;
+  border-radius: 999px; border: 1px solid var(--border-chip); background: var(--surface);
+  color: var(--primary); font-weight: 700; padding: 10px 16px; }
+.competition-link:hover, .competition-link:focus-visible { background: var(--primary-soft); border-color: var(--primary); }

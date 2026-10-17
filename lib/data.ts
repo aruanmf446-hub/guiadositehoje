@@ -17,6 +17,7 @@ export type Game = {
   gameDate?: string;
   kickoffAt?: string;
   seoDescription?: string;
+  competitionSlug?: string;
   sourceUrl?: string;
   status?: string;
 };

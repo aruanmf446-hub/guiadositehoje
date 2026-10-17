@@ -7,7 +7,11 @@ const ALL_LEAGUES='Todos';
 export function GamesSection({games}:{games:Game[]}){
   const [league,setLeague]=useState(ALL_LEAGUES);
   const leagues=[...new Set(games.map(g=>g.league))];
-  const visible=league===ALL_LEAGUES?games:games.filter(g=>g.league===league);
+  const visible=(league===ALL_LEAGUES?games:games.filter(g=>g.league===league))
+    .slice().sort((a,b)=>{
+      const brazil=(g:Game)=>g.competitionSlug?.startsWith('brasileirao-serie-')?0:1;
+      return brazil(a)-brazil(b) || (a.kickoffAt||'').localeCompare(b.kickoffAt||'');
+    });
   return <section id="jogos" aria-labelledby="t-jogos" className="section">
     <div className="section-head">
       <div className="section-title-wrap">

@@ -10,8 +10,9 @@ type Match = {
   broadcast: string | null; broadcast_status: string;
   broadcaster_source: string | null; slug: string | null;
   game_date: string; seo_description: string | null; source_url: string | null;
+  competition_slug: string | null;
 };
-const columns = 'id,league,kickoff_at,home_team,home_abbr,home_score,away_team,away_abbr,away_score,status,broadcast,broadcast_status,broadcaster_source,slug,game_date,seo_description,source_url';
+const columns = 'id,league,kickoff_at,home_team,home_abbr,home_score,away_team,away_abbr,away_score,status,broadcast,broadcast_status,broadcaster_source,slug,game_date,seo_description,source_url,competition_slug';
 
 function toGame(m: Match): Game {
   const score = m.status === 'live' || m.status === 'finished';
@@ -34,6 +35,7 @@ function toGame(m: Match): Game {
     kickoffAt: m.kickoff_at,
     seoDescription: m.seo_description ?? undefined,
     sourceUrl: m.source_url ?? undefined, status: m.status,
+    competitionSlug: m.competition_slug ?? undefined,
   };
 }
 function addDays(iso: string, increment: number) {
@@ -69,4 +71,31 @@ export async function getFootballSitemapEntries(): Promise<{slug:string;date:str
     .limit(1500);
   if (error) { console.error('Falha ao gerar sitemap do futebol:',error.message); return []; }
   return (data||[]).filter(row=>!!row.slug).map(row=>({slug:row.slug,date:row.updated_at}));
+}
+
+export type FootballCompetition = {
+  slug: string;
+  leagueId: string;
+  name: string;
+  description: string;
+  displayOrder: number;
+};
+export async function getFootballCompetitions(): Promise<FootballCompetition[]> {
+  const {data,error}=await getSupabase().from('football_competitions')
+    .select('slug,league_id,name,description,display_order')
+    .eq('enabled',true).order('display_order',{ascending:true});
+  if(error){console.error('Erro ao consultar competições:',error.message);return [];}
+  return (data||[]).map(row=>({
+    slug:row.slug,leagueId:row.league_id,name:row.name,
+    description:row.description,displayOrder:row.display_order,
+  }));
+}
+export async function getCompetitionGames(slug:string,limit=150):Promise<Game[]> {
+  const today=todayInBrasilia();
+  const {data,error}=await getSupabase().from('matches').select(columns)
+    .eq('is_published',true).eq('competition_slug',slug)
+    .gte('game_date',today).lte('game_date',addDays(today,7))
+    .order('kickoff_at',{ascending:true}).limit(limit);
+  if(error){console.error('Erro ao consultar divisão',error.message);return [];}
+  return ((data||[]) as Match[]).map(toGame);
 }
