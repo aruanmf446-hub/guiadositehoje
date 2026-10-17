@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot} from '@/lib/office-shared';
 import {profiles} from '@/lib/office-shared';
@@ -72,6 +72,10 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const [loading,setLoading]=useState(false);
  const [refreshError,setRefreshError]=useState('');
  const [detailsOpen,setDetailsOpen]=useState(false);
+ const [mobileSheet,setMobileSheet]=useState(false);
+ const sheetRef=useRef<HTMLElement|null>(null);
+ const closeButtonRef=useRef<HTMLButtonElement|null>(null);
+ const lastTriggerRef=useRef<HTMLElement|null>(null);
  const refresh=useCallback(async()=>{
   try {
    const response=await fetch('/api/escritorio/status',{cache:'no-store'});
@@ -85,11 +89,49 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
   return ()=>window.clearInterval(timer);
  },[refresh]);
  useEffect(()=>{
-  if(!detailsOpen)return;
-  const dismiss=(event:KeyboardEvent)=>{if(event.key==='Escape')setDetailsOpen(false);};
-  window.addEventListener('keydown',dismiss);
-  return ()=>window.removeEventListener('keydown',dismiss);
- },[detailsOpen]);
+  const media=window.matchMedia('(max-width: 700px)');
+  const update=()=>setMobileSheet(media.matches);
+  update();
+  media.addEventListener('change',update);
+  return ()=>media.removeEventListener('change',update);
+ },[]);
+ const closeDetails=useCallback(()=>{
+  setDetailsOpen(false);
+  if(typeof window!=='undefined'&&window.matchMedia('(max-width: 700px)').matches){
+   window.requestAnimationFrame(()=>lastTriggerRef.current?.focus());
+  }
+ },[]);
+ const openDetails=useCallback((id:AgentId)=>{
+  if(typeof document!=='undefined'&&document.activeElement instanceof HTMLElement){
+   lastTriggerRef.current=document.activeElement;
+  }
+  setSelected(id);setView('escritorio');setDetailsOpen(true);
+ },[]);
+ useEffect(()=>{
+  if(!detailsOpen||!mobileSheet)return;
+  const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  const previousOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  closeButtonRef.current?.focus();
+  const keys=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();closeDetails();return;}
+   if(event.key!=='Tab'||!sheetRef.current)return;
+   const focusables=Array.from(sheetRef.current.querySelectorAll<HTMLElement>(
+    'button:not([disabled]),a[href],input:not([disabled]),[tabindex]:not([tabindex="-1"])'
+   )).filter(el=>el.getClientRects().length>0);
+   if(!focusables.length)return;
+   const first=focusables[0],last=focusables[focusables.length-1];
+   if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+  document.addEventListener('keydown',keys);
+  return ()=>{
+   document.removeEventListener('keydown',keys);
+   document.body.style.overflow=previousOverflow;
+   if(lastTriggerRef.current?.isConnected)lastTriggerRef.current.focus();
+   else previous?.focus();
+  };
+ },[detailsOpen,mobileSheet,closeDetails]);
  const selectedAgent=snapshot.agents.find(a=>a.id===selected)||snapshot.agents[0];
  const selectedProfile=profiles.find(p=>p.id===selectedAgent.id)!;
  const displayed=filter==='todos'?snapshot.deliveries:snapshot.deliveries.filter(x=>x.agentId===filter);
@@ -105,7 +147,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
    <div className="office-nav-overline">ESPAÇO DE TRABALHO</div>
    <nav className="office-menu" aria-label="Áreas do escritório">
     {([['escritorio','⌂','Escritório'],['equipe','♧','Meu time'],['entregas','▤','Entregas']] as const).map(([key,ico,label])=>
-     <button key={key} type="button" className={view===key?'nav-current':''} aria-label={label} title={label} aria-current={view===key?'page':undefined} onClick={()=>{setView(key);setDetailsOpen(false);}}>
+     <button key={key} type="button" className={view===key?'nav-current':''} aria-label={label} title={label} aria-current={view===key?'page':undefined} onClick={()=>{setView(key);closeDetails();}}>
       <span>{ico}</span>{label}{view===key&&<i aria-hidden="true"/>}
      </button>)}
    </nav>
@@ -114,7 +156,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {profiles.map(p=>{
      const a=snapshot.agents.find(x=>x.id===p.id)!;
      return <button key={p.id} type="button" className={'side-member'+(selected===p.id&&view==='escritorio'?' side-member-active':'')}
-       onClick={()=>{setSelected(p.id);setView('escritorio');setDetailsOpen(true);}}>
+       onClick={()=>openDetails(p.id)}>
        <span className="side-member-dot" style={{background:p.color}}>{p.name.slice(0,1)}</span>
        <span>{p.name}<small>{p.job}</small></span>
        <i className={'member-light light-'+a.state}/>
@@ -164,19 +206,21 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
         <div className="scene-plant plant-b"><span/><i/></div>
         <div className="scene-water">▥<small>água</small></div>
         <div className="scene-stations">
-         {snapshot.agents.map(agent=><Station key={agent.id} agent={agent} selected={selected===agent.id} onSelect={()=>{setSelected(agent.id);setDetailsOpen(true);}}/>)}
+         {snapshot.agents.map(agent=><Station key={agent.id} agent={agent} selected={selected===agent.id} onSelect={()=>openDetails(agent.id)}/>)}
         </div>
        </div>
       </div>
       <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Atualização automática a cada 45 segundos</span></div>
      </section>
 
-     <button type="button" className={'office-sheet-backdrop'+(detailsOpen?' sheet-active':'')} onClick={()=>setDetailsOpen(false)} aria-label="Fechar detalhes do agente" tabIndex={detailsOpen?0:-1}/>
-     <aside className={'office-inspector'+(detailsOpen?' sheet-open':'')} aria-label={'Detalhes de '+selectedProfile.name}>
-      <div className="office-sheet-handle" aria-hidden="true"/><div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small><button type="button" className="office-sheet-close" onClick={()=>setDetailsOpen(false)} aria-label="Fechar ficha do agente">×</button></div>
+     <button type="button" className={'office-sheet-backdrop'+(detailsOpen?' sheet-active':'')} onClick={closeDetails} aria-label="Fechar detalhes do agente" tabIndex={detailsOpen?0:-1}/>
+     <aside ref={sheetRef} className={'office-inspector'+(detailsOpen?' sheet-open':'')}
+      role={mobileSheet&&detailsOpen?'dialog':undefined} aria-modal={mobileSheet&&detailsOpen?true:undefined}
+      aria-labelledby="office-agent-title" aria-label={mobileSheet&&detailsOpen?undefined:'Detalhes de '+selectedProfile.name}>
+      <div className="office-sheet-handle" aria-hidden="true"/><div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small><button ref={closeButtonRef} type="button" className="office-sheet-close" onClick={closeDetails} aria-label="Fechar ficha do agente">×</button></div>
       <div className="inspector-person" style={{'--agent-accent':selectedProfile.color} as CSSProperties}>
        <div className="inspector-portrait"><Sprite id={selectedAgent.id}/></div>
-       <div><div className="inspector-hello">Olá, eu sou</div><h2>{selectedProfile.name}<span>.</span></h2><p>{selectedProfile.job}</p></div>
+       <div><div className="inspector-hello">Olá, eu sou</div><h2 id="office-agent-title">{selectedProfile.name}<span>.</span></h2><p>{selectedProfile.job}</p></div>
       </div>
       <Status state={selectedAgent.state}/>
       <div className="inspector-divider"/>
@@ -185,8 +229,11 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
       <span className="inspector-caption">SITUAÇÃO COMPROVADA</span>
       <p className="inspector-activity">{selectedAgent.activity}</p>
       <div className="office-task-summary">
-       <div><small>ÚLTIMO REGISTRO · {selectedAgent.lastOrigin}</small><strong>{clock(selectedAgent.lastSeen)}</strong></div>
-       <div><small>{selectedAgent.nextAction}</small><strong>{selectedAgent.nextAt?clock(selectedAgent.nextAt)+' (Brasília)':'Sem previsão confirmada'}</strong></div>
+       <div><small>ÚLTIMO TRABALHO · {selectedAgent.lastOrigin}</small>
+         <strong>{selectedAgent.deliveries[0]?.title||selectedAgent.activity}</strong>
+         <span className="office-record-time">{clock(selectedAgent.lastSeen)}</span></div>
+       <div><small>PRÓXIMA TAREFA</small><strong>{selectedAgent.nextAction}</strong>
+         <span className="office-record-time">{selectedAgent.nextAt?clock(selectedAgent.nextAt)+' (Brasília)':'Sem previsão confirmada'}</span></div>
        {selectedAgent.id==='seo'&&selectedAgent.queuedCount>0&&<div className="office-queue">◈ {selectedAgent.queuedCount} pauta(s) com fonte aguardando redação</div>}
        {selectedAgent.reportedPlan&&<div className="office-executor-plan"><small>PLANO INFORMADO PELO AGENTE</small><strong>{selectedAgent.reportedPlan}</strong></div>}
       </div>
@@ -200,7 +247,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {view==='equipe'&&<div className="office-team-grid">
      {snapshot.agents.map(agent=>{
       const p=profiles.find(x=>x.id===agent.id)!;
-      return <button className="team-card" type="button" key={agent.id} onClick={()=>{setSelected(agent.id);setView('escritorio');setDetailsOpen(true);}}
+      return <button className="team-card" type="button" key={agent.id} onClick={()=>openDetails(agent.id)}
         style={{'--agent-accent':p.color} as CSSProperties}>
        <span className="team-card-art"><Sprite id={agent.id}/></span>
        <span className="team-card-content"><small>MESA {p.desk} / AGENTE</small><strong>{p.name}</strong><span>{p.job}</span><Status state={agent.state}/><em>Ver estação ↗</em></span>
