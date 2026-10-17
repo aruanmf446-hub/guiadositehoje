@@ -179,6 +179,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
        <div><small>ÚLTIMO REGISTRO · {selectedAgent.lastOrigin}</small><strong>{clock(selectedAgent.lastSeen)}</strong></div>
        <div><small>{selectedAgent.nextAction}</small><strong>{selectedAgent.nextAt?clock(selectedAgent.nextAt)+' (Brasília)':'Sem previsão confirmada'}</strong></div>
        {selectedAgent.id==='seo'&&selectedAgent.queuedCount>0&&<div className="office-queue">◈ {selectedAgent.queuedCount} pauta(s) com fonte aguardando redação</div>}
+       {selectedAgent.reportedPlan&&<div className="office-executor-plan"><small>PLANO INFORMADO PELO AGENTE</small><strong>{selectedAgent.reportedPlan}</strong></div>}
       </div>
       <div className="inspector-divider"/>
       <div className="inspector-recent-title"><strong>Meus últimos trabalhos</strong><span>{recentDeliveries.length} recentes</span></div>
