@@ -312,3 +312,174 @@
 @media(prefers-reduced-motion:reduce){
  .station-selected .station-sprite{animation:none}
 }
+
+
+/* =====================================================================
+   ESCRITÓRIO MOBILE — uma tela de verdade, sem páginas de mesas gigantes.
+   Preserva a experiência desktop; reagrupa estações em miniaturas táteis.
+   ===================================================================== */
+.office-title-mobile,.office-mobile-hint,.office-sheet-backdrop,.office-sheet-handle,.office-sheet-close{display:none}
+@media(min-width:701px) and (max-width:930px){
+ .scene-floor{height:auto;min-height:440px}
+ .scene-stations{position:relative;inset:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,198px);justify-items:center;align-items:start;padding:12px 2px}
+ .office-station,.office-station:nth-child(n){position:relative;top:auto;left:auto;width:203px;height:220px;max-width:none;transform:scale(.73);transform-origin:top center}
+ .office-station:nth-child(4){grid-column:1 / 3;justify-self:end}
+ .office-station:nth-child(5){grid-column:3;justify-self:start}
+ .office-dashboard{gap:15px}
+ .office-inspector{display:block}
+ .office-content{padding:25px 22px}
+ .office-heading h1{font-size:clamp(24px,3.5vw,32px)}
+ .scene-title small{display:none}
+}
+@media(max-width:700px){
+ html:has(.office-shell),body:has(.office-shell){width:100%;max-width:100%;overflow:hidden;overscroll-behavior:none}
+ .office-shell{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0;width:100%;overflow:hidden}
+ .office-side{flex:0 0 54px;height:54px;min-height:0;width:100%;padding:7px 12px;position:relative;top:auto;z-index:5;gap:10px}
+ .office-logo{flex:0 0 auto;max-width:100%;gap:6px;padding:0}
+ .office-logo-mark{width:35px;height:35px;flex-shrink:0;border-radius:10px;font-size:22px;box-shadow:0 3px 0 #161a2c}
+ .office-logo>span:last-child{display:block}
+ .office-logo strong{font-size:13px;letter-spacing:-.4px}
+ .office-logo small{font-size:7px;letter-spacing:.9px}
+ .office-menu{display:flex;flex:1;align-items:center;justify-content:flex-end;gap:4px;margin:0;min-width:0}
+ .office-menu button{width:42px;height:40px;flex:0 0 42px;padding:8px;font-size:0;border-radius:10px;justify-content:center}
+ .office-menu button>span{font-size:23px;width:25px;line-height:1}
+ .office-menu button i{right:4px;top:5px}
+ .office-main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;height:auto;overflow:hidden}
+ .office-topbar{height:42px;flex:0 0 42px;min-height:0;padding:0 14px;gap:6px}
+ .office-breadcrumb{font-size:9px;letter-spacing:.6px}
+ .office-breadcrumb span{margin:0 5px}
+ .office-top-actions{gap:12px;min-width:0}
+ .office-observed,.office-avatar{display:none}
+ .office-github-chip{display:flex;gap:2px;font-size:0}
+ .office-github-chip span{font-size:19px}
+ .office-refresh{height:34px;padding:7px 9px;font-size:11px;border-radius:9px}
+ .office-refresh span{font-size:19px}
+ .office-content{flex:1;min-height:0;min-width:0;padding:12px 12px 8px;display:flex;flex-direction:column;overflow:hidden}
+ .office-heading{display:flex;flex:0 0 auto;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+ .office-heading>div:first-child{min-width:0}
+ .office-eyebrow{margin:0 0 2px;font-size:8px;letter-spacing:1.4px}
+ .office-eyebrow span{font-size:11px;margin-right:3px}
+ .office-heading h1{font-size:clamp(20px,5.2vw,25px);line-height:1.1;letter-spacing:-.8px;white-space:nowrap}
+ .office-title-desktop{display:none}
+ .office-title-mobile{display:inline}
+ .office-heading .title-sparkle{font-size:14px;margin-left:5px}
+ .office-subtitle{display:none}
+ .office-check{flex:0 0 auto;padding:6px 8px;gap:5px;border-radius:9px}
+ .office-check .check-icon{font-size:17px}
+ .office-check span:last-child{font-size:7px;letter-spacing:.5px}
+ .office-check strong{font-size:10px}
+ .office-alert{font-size:10px;padding:8px 10px;margin:0 0 9px;flex-shrink:0}
+ .office-dashboard{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:0;align-items:stretch}
+ .office-scene-wrap{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;border-radius:15px;overflow:hidden}
+ .scene-title{flex:0 0 40px;min-height:40px;display:flex;align-items:center;padding:7px 12px}
+ .scene-title strong{font-size:14px}
+ .scene-title small{display:none}
+ .scene-floor-label{font-size:8px;padding:5px 7px}
+ .office-mobile-hint{display:block;font-size:10px;font-weight:700;color:#786f9f;background:#f9f6ff;margin:0;padding:7px 12px;border-top:1px solid #f2eefb}
+ .office-mobile-hint span{color:#8e81d7}
+ .office-scene{flex:1;min-height:0;display:block;margin:0 6px;border-radius:10px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d2c2ab transparent;-webkit-overflow-scrolling:touch}
+ .scene-wall{height:42px;min-height:42px;padding:3px 6%;border-bottom:5px solid #ccbaa1}
+ .scene-sign{font-size:8px;letter-spacing:1px;padding:4px 8px;border-width:2px;box-shadow:2px 3px 0 #b8a58c}
+ .scene-windows{height:36px;top:2px;gap:5px}
+ .scene-windows>div{width:31px;height:34px;border:3px solid #f9f1e4;border-bottom-width:5px}
+ .scene-windows>div:after{border-left-width:2px}
+ .scene-clock{width:24px;height:24px;font-size:15px;border-width:2px}
+ .scene-floor{position:relative;height:auto;min-height:0;flex:none;border-bottom-width:4px}
+ .scene-rug{inset:8% 5% 8%;border-radius:25px;box-shadow:inset 0 0 0 7px #e9d7c4,inset 0 0 0 9px #cdb8aa}
+ .scene-plant,.scene-cabinet,.scene-water{display:none}
+ .scene-stations{position:relative;inset:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:131px;justify-items:center;align-items:start;gap:9px 8px;padding:13px 9px 18px}
+ .office-station,.office-station:nth-child(n){position:relative!important;left:auto!important;top:auto!important;width:100%;height:131px;min-width:0;max-width:174px;margin:0;padding:0;transform:none!important;transform-origin:center;isolation:isolate}
+ .office-station:nth-child(5){grid-column:1/-1;justify-self:center;width:min(47%,174px)}
+ .station-bubble{position:absolute;top:0;right:1px;z-index:8;border:1px solid #e5ded6;border-radius:6px;font-size:8px;max-width:85%;padding:4px 6px;box-shadow:0 2px 0 #ddd7d0}
+ .station-bubble:after{bottom:-5px;left:9px;border-width:5px 5px 0 0}
+ .station-desk{left:50%;top:37px;width:min(118px,90%);height:44px;border:5px solid #c99c76;border-radius:7px;transform:translateX(-50%);box-shadow:0 6px 0 #9b755b,3px 9px 0 #a58b70}
+ .station-monitor{left:26%;top:-18px;width:55px;height:39px;border:4px solid #485270;border-radius:5px;box-shadow:0 4px 0 #798298}
+ .station-monitor:after{top:34px;left:22px;width:7px;height:8px}
+ .station-screen{inset:2px;padding:4px;gap:3px}
+ .station-screen i{height:3px}
+ .station-screen b{width:10px;height:10px;right:3px;bottom:3px;border-width:2px}
+ .station-keyboard{left:28%;bottom:5px;width:56px;height:9px;box-shadow:0 2px #b8a99b}
+ .station-cup{right:9px;top:15px;width:12px;height:13px;border-width:2px}
+ .station-cup:after{right:-7px;top:2px;width:5px;height:6px;border-width:2px}
+ .station-chair{top:78px;left:calc(50% - 20px);width:40px;height:26px;border-width:4px;border-radius:12px;box-shadow:0 4px #6d6474}
+ .station-sprite{top:64px;left:calc(50% - 24px);width:48px;height:52px;transform:none;filter:drop-shadow(0 2px 1px #70594125)}
+ .office-station:hover .station-sprite{transform:none}
+ .station-nameplate{bottom:0;left:2%;right:2%;min-height:33px;display:grid;place-items:center;gap:1px;padding:4px 3px;border-width:1.5px;border-radius:7px;box-shadow:0 2px #d3c4b0}
+ .station-nameplate strong{font-size:11px}
+ .station-nameplate small{display:block;max-width:100%;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .station-selected .station-nameplate{box-shadow:0 3px var(--agent-accent)}
+ .scene-foot{flex:0 0 auto;min-height:25px;padding:6px 9px;gap:6px;font-size:8px}
+ .scene-foot>span:last-child{display:none}
+ .office-footer{display:none}
+ .office-sheet-backdrop{display:none;position:fixed;inset:0;width:100%;height:100%;z-index:50;background:#161b33a1;border:0;border-radius:0;padding:0;cursor:pointer}
+ .office-sheet-backdrop.sheet-active{display:block}
+ .office-inspector,.office-inspector.sheet-open{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;max-width:100%;height:auto;max-height:min(84dvh,740px);z-index:51;margin:0;padding:13px 19px calc(16px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;border:1px solid #e9eaf0;box-shadow:0 -10px 44px #1219323d;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;display:none}
+ .office-inspector.sheet-open{display:block}
+ .office-sheet-handle{display:block;width:38px;height:4px;border-radius:9px;background:#d6d8e4;margin:0 auto 11px}
+ .inspector-heading{position:relative;min-height:31px;padding-right:42px;gap:6px}
+ .office-sheet-close{display:grid;place-items:center;position:absolute;right:0;top:-2px;width:39px;height:39px;border-radius:12px;border:1px solid #e7e8f0;background:#f8f8fc;color:#465172;font-size:25px;line-height:1}
+ .inspector-person{margin:9px 0 12px;gap:12px}
+ .inspector-portrait{width:64px;height:70px;flex:0 0 64px;border-radius:12px}
+ .inspector-portrait .office-sprite{width:53px;height:67px}
+ .inspector-person h2{font-size:24px}
+ .inspector-person p{font-size:11px}
+ .office-inspector>.inspector-divider{margin:13px 0}
+ .inspector-mission{margin:5px 0 10px;font-size:12px}
+ .inspector-activity{margin:5px 0 9px;font-size:12px}
+ .office-task-summary{grid-template-columns:1fr 1fr;gap:8px}
+ .office-task-summary>div:not(.office-queue){min-width:0;padding:9px}
+ .office-task-summary strong{overflow-wrap:anywhere}
+ .office-queue,.office-executor-plan{grid-column:1/-1}
+ .inspector-recent-title{margin-bottom:3px}
+ .office-inspector .office-delivery{padding:10px 0}
+ .office-inspector .delivery-copy strong{max-width:100%}
+ .office-team-grid{flex:1;min-height:0;min-width:0;overflow-y:auto;align-content:start;grid-template-columns:1fr;gap:9px;padding:2px 2px 8px}
+ .team-card{min-width:0;display:grid;grid-template-columns:86px minmax(0,1fr);text-align:left;border-radius:13px;min-height:112px}
+ .team-card-art{height:100%;min-height:112px;border-bottom:0;border-right:4px solid var(--agent-accent);display:flex;align-items:end;justify-content:center}
+ .team-card-art .office-sprite{width:68px;height:92px}
+ .team-card-content{min-width:0;gap:5px;padding:9px 12px}
+ .team-card-content>strong{font-size:18px;line-height:1.1}
+ .team-card-content>small{font-size:8px}
+ .team-card-content>span:not(.office-status){font-size:10px}
+ .team-card-content .office-status{font-size:9px;padding:5px 8px}
+ .team-card-content em{font-size:10px;margin-top:0}
+ .office-history{flex:1;min-width:0;min-height:0;max-width:none;overflow-y:auto;overscroll-behavior:contain;padding:14px;border-radius:14px}
+ .history-head strong{font-size:19px}
+ .history-head p{font-size:11px;line-height:1.4}
+ .history-head>span{display:none}
+ .history-filters{flex-wrap:nowrap;overflow-x:auto;max-width:100%;gap:6px;scrollbar-width:thin;margin:15px 0 6px;padding-bottom:4px}
+ .history-filters button{flex:0 0 auto;padding:8px 10px;font-size:10px}
+ .office-history .office-delivery{padding:12px 2px}
+ .office-history .delivery-copy strong{font-size:11px;white-space:normal;overflow-wrap:anywhere}
+ .office-history .delivery-copy small{font-size:9px}
+}
+@media(max-width:360px){
+ .office-logo strong{font-size:12px}
+ .office-logo small{font-size:6px}
+ .office-menu{gap:1px}
+ .office-menu button{flex-basis:37px;width:37px}
+ .office-content{padding:10px 9px 7px}
+ .office-check{padding:5px}
+ .office-check span:last-child{font-size:7px}
+ .scene-stations{padding:10px 5px 14px;gap:6px 4px}
+ .office-station,.office-station:nth-child(n){height:130px}
+ .scene-stations{grid-auto-rows:130px}
+ .station-nameplate small{font-size:7px}
+ .station-bubble{font-size:7px}
+}
+@media(max-width:700px) and (max-height:620px){
+ .office-side{height:47px;flex-basis:47px;padding-top:4px;padding-bottom:4px}
+ .office-topbar{height:37px;flex-basis:37px}
+ .office-content{padding-top:6px}
+ .office-heading{margin-bottom:6px}
+ .office-eyebrow{display:none}
+ .office-mobile-hint{padding:4px 10px;font-size:9px}
+ .scene-title{min-height:33px;flex-basis:33px}
+ .scene-wall{height:35px;min-height:35px}
+ .scene-windows{display:none}
+ .scene-floor-label{display:none}
+}
+@media(max-width:700px) and (prefers-reduced-motion:reduce){
+ .office-station:hover .station-sprite,
+ .station-selected .station-sprite{animation:none;transform:none}
+}
