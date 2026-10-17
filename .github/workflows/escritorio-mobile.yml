@@ -1,0 +1,47 @@
+name: Validar Escritório Mobile
+on:
+  push:
+    paths:
+      - 'app/escritorio/**'
+      - 'scripts/test-office-mobile.cjs'
+      - '.github/workflows/escritorio-mobile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Instalar Playwright apenas no CI
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Inicializar Next.js
+        run: |
+          npm run dev -- --hostname 127.0.0.1 > /tmp/escritorio-next.log 2>&1 &
+          echo $! > /tmp/escritorio-pid
+          for attempt in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/escritorio; then exit 0; fi
+            sleep 3
+          done
+          cat /tmp/escritorio-next.log
+          exit 1
+      - name: Testar tamanhos, toques e orientação
+        run: node scripts/test-office-mobile.cjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: escritorio-mobile-screenshots
+          path: artifacts/office-mobile/
+          if-no-files-found: ignore
+      - if: failure()
+        run: cat /tmp/escritorio-next.log || true
