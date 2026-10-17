@@ -60,11 +60,17 @@ function score(x:unknown):number|null {
   const n=Number(x);
   return Number.isInteger(n)&&n>=0?n:null;
 }
+let nextAllowedRequest=0;
 async function sourceJson(path:string):Promise<Obj> {
+  // Limitação deliberada para respeitar os limites do serviço gratuito.
+  const wait=Math.max(0,nextAllowedRequest-Date.now());
+  if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
+  nextAllowedRequest=Date.now()+1800;
   const controller=new AbortController();
   const kill=setTimeout(()=>controller.abort(),11000);
   try{
     const res=await fetch(HOST+path,{signal:controller.signal,headers:{"Accept":"application/json"}});
+    if(res.status===429)nextAllowedRequest=Math.max(nextAllowedRequest,Date.now()+12000);
     if(!res.ok)throw Error("HTTP "+res.status);
     return await res.json();
   } finally {clearTimeout(kill);}
@@ -173,21 +179,30 @@ Deno.serve(async (req:Request)=>{
     }catch(e){errors.push("TV "+date+": "+String(e).slice(0,110));}
     await new Promise(done=>setTimeout(done,160));
   }
-  // API gratuita entrega no máximo 3 eventos por campeonato/data.
-  // Por isso consultamos cada campeonato em vez de pedir apenas os 3 globais.
+  // A camada gratuita retorna no máximo 3 partidas por data. Consultamos
+  // o calendário geral e o próximo jogo de cada competição, poupando a cota.
+  for(const date of dates){
+    if(date<today || date>dayStep(today,7))continue;
+    try{
+      const response=await sourceJson("eventsday.php?d="+date+"&s=Soccer");
+      sourceOK++;
+      for(const event of (Array.isArray(response.events)?response.events:[]) as Obj[]){
+        const entry=makeMatch(event,String(event.strLeague||"Futebol"),tvByEvent.get(String(event.idEvent||"")));
+        if(entry && entry.game_date>=today && entry.game_date<=dayStep(today,7))
+          records.set(entry.external_ref,entry);
+      }
+    }catch(e){errors.push("Agenda "+date+": "+String(e).slice(0,90));}
+  }
   for(const [leagueId,leagueName] of Object.entries(LEAGUES)){
-    for(const date of dates) {
-      try{
-        const payload=await sourceJson("eventsday.php?d="+date+"&s=Soccer&l="+leagueId);
-        sourceOK++;
-        for(const match of (Array.isArray(payload.events)?payload.events:[]) as Obj[]) {
-          const item=makeMatch(match,leagueName,tvByEvent.get(String(match.idEvent||"")));
-          if(item && item.game_date>=today && item.game_date<=dayStep(today,7))
-            records.set(item.external_ref,item);
-        }
-      }catch(e){errors.push(leagueName+" "+date+": "+String(e).slice(0,95));}
-      await new Promise(done=>setTimeout(done,100));
-    }
+    try{
+      const response=await sourceJson("eventsnextleague.php?id="+leagueId);
+      sourceOK++;
+      for(const event of (Array.isArray(response.events)?response.events:[]) as Obj[]){
+        const entry=makeMatch(event,leagueName,tvByEvent.get(String(event.idEvent||"")));
+        if(entry && entry.game_date>=today && entry.game_date<=dayStep(today,7))
+          records.set(entry.external_ref,entry);
+      }
+    }catch(e){errors.push(leagueName+": "+String(e).slice(0,90));}
   }
   // Os anúncios oficiais de TV no Brasil podem existir sem presença no
   // recorte de 3 eventos da API gratuita. Consultamos o jogo pelo ID.

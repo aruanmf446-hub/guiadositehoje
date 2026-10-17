@@ -15,7 +15,7 @@ O Supabase Cron executa a coleta **três vezes por dia**, 06h20, 12h20 e 18h20 (
 - Preserva transmissões inseridas com fonte independente. Nunca inventa canal ou cria artigos fictícios.
 - Guarda o estado em `agent_runs` (execuções) e bloqueia chamadas não autorizadas com token aleatório armazenado no Supabase em `agent_configuration`.
 
-**Fonte gratuita utilizada:** [TheSportsDB v1](https://www.thesportsdb.com/docs/api), documentada pelo fornecedor, com limite gratuito de **até 3 eventos por campeonato e data** e **1 anúncio de TV por consulta**. O agente percorre diversos campeonatos por dia; isso não garante cobertura completa. Os anúncios para o Brasil são filtrados por país, e a grade pode mudar. A disponibilidade da API e as condições de reutilização devem ser respeitadas.
+**Fonte gratuita utilizada:** [TheSportsDB v1](https://www.thesportsdb.com/docs/api), documentada pelo fornecedor, com limite gratuito de **até 3 eventos por campeonato e data** e **1 anúncio de TV por consulta**. O agente consulta o recorte diário e o próximo evento por campeonato; a lista gratuita pode omitir jogos, portanto não há garantia de cobertura completa. Os anúncios para o Brasil são filtrados por país, e a grade pode mudar. A disponibilidade da API e as condições de reutilização devem ser respeitadas.
 
 **Importante:** este é um agente de automação editorial e SEO por regras verificáveis, **sem modelo de IA generativa ativado** e sem consumo de tokens de IA. Um modelo generativo poderá ser acoplado depois, com sua própria chave e limites gratuitos, sem permitir que invente jogos ou transmissões.
 
