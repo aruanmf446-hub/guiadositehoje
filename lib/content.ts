@@ -72,11 +72,11 @@ export async function getTodaysGames(): Promise<Game[]> {
   }));
 }
 
-type WatchRow = { id: string; kind: WatchKind; platform: string; title: string; poster_url: string | null; source_url:string | null; watch_url:string | null; availability_status:string; synopsis:string | null; };
+type WatchRow = { id: string; kind: WatchKind; platform: string; title: string; poster_url: string | null; source_url:string | null; watch_url:string | null; availability_status:string; synopsis:string | null; editorial_body:string|null;seo_title:string|null;seo_description:string|null;updated_at:string; };
 
 export async function getWatchTitles(): Promise<WatchTitle[]> {
   const { data, error } = await getSupabase().from('watch_titles')
-    .select('id,kind,platform,title,poster_url,source_url,watch_url,availability_status,synopsis').eq('is_published', true)
+    .select('id,kind,platform,title,poster_url,source_url,watch_url,availability_status,synopsis,editorial_body,seo_title,seo_description,updated_at').eq('is_published', true)
     .order('updated_at', { ascending: false }).limit(60);
   if (error) { console.error('Erro ao consultar onde assistir:', error.message); return []; }
   return ((data || []) as WatchRow[]).map(row => ({
@@ -86,5 +86,7 @@ export async function getWatchTitles(): Promise<WatchTitle[]> {
     watchUrl: row.watch_url || undefined,
     availabilityStatus: row.availability_status,
     synopsis: row.synopsis || undefined,
+    editorialBody:row.editorial_body || undefined, seoTitle:row.seo_title || undefined,
+    seoDescription:row.seo_description || undefined,updatedAt:row.updated_at,
   }));
 }

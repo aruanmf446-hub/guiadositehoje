@@ -56,4 +56,8 @@ export type WatchTitle = {
   watchUrl?: string;
   availabilityStatus?: string;
   synopsis?: string;
+  editorialBody?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  updatedAt?: string;
 };
