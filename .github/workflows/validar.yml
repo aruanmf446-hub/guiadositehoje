@@ -19,3 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      - name: Validar dados estruturados dos jogos
+        run: |
+          npm run start > /tmp/guia-futebol-next.log 2>&1 &
+          node scripts/test-football-schema.cjs

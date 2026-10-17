@@ -31,22 +31,35 @@ export default async function FootballMatchPage({params}:Props){
   if(!game || !game.kickoffAt)notFound();
   const sourceIsSafe=game.broadcastSource && game.broadcastSource.startsWith('https://');
   const matchUrl=`${siteUrl}/futebol/${slug}`;
-  const schema={
+  // Eventos no Google exigem um local físico verificável. Sem endereço completo,
+  // a página continua indexável como WebPage, mas não se apresenta como evento elegível.
+  const venueIsVerified=Boolean(game.venueName && game.venueAddress &&
+    game.venueCity && game.venueCountry);
+  const teams=[
+    {'@type':'SportsTeam',name:game.home},
+    {'@type':'SportsTeam',name:game.away},
+  ];
+  const description=game.seoDescription || `Confronto de futebol válido por ${game.league}`;
+  const schema=venueIsVerified ? {
     '@context':'https://schema.org','@type':'SportsEvent','@id':matchUrl,
     name:`${game.home} x ${game.away} - ${game.league}`,
-    description:game.seoDescription || `Confronto de futebol válido por ${game.league}`,
-    url:matchUrl,startDate:game.kickoffAt,
+    description,url:matchUrl,startDate:game.kickoffAt,
     eventStatus:game.status==='cancelled'?'https://schema.org/EventCancelled':
       game.status==='postponed'?'https://schema.org/EventPostponed':'https://schema.org/EventScheduled',
-    competitor:[
-      {'@type':'SportsTeam',name:game.home},
-      {'@type':'SportsTeam',name:game.away},
-    ],
-    sport:'Futebol',
-    ...(game.broadcast ? {subjectOf:{
-      '@type':'BroadcastEvent',broadcastOfEvent:{'@id':matchUrl},
-      broadcastService:{'@type':'BroadcastService',name:game.broadcast},
-    }} : {}),
+    location:{
+      '@type':'Place',name:game.venueName,
+      address:{
+        '@type':'PostalAddress',streetAddress:game.venueAddress,
+        addressLocality:game.venueCity,
+        ...(game.venueRegion?{addressRegion:game.venueRegion}:{}),
+        addressCountry:game.venueCountry,
+      },
+    },
+    competitor:teams,sport:'Futebol',
+  } : {
+    '@context':'https://schema.org','@type':'WebPage','@id':matchUrl+'#webpage',
+    name:`${game.home} x ${game.away} - ${game.league}`,
+    description,url:matchUrl,about:teams,
   };
   return <div className="site">
     <script type="application/ld+json" dangerouslySetInnerHTML={{
@@ -66,6 +79,10 @@ export default async function FootballMatchPage({params}:Props){
         <div className="football-details">
           <p><strong>Data e hora:</strong> <time dateTime={game.kickoffAt}>{dateText(game.kickoffAt)} (horário de Brasília)</time></p>
           <p><strong>Campeonato:</strong> {game.league}</p>
+          {game.venueName && <p><strong>Estádio:</strong> {game.venueName}
+            {game.venueCity ? ` — ${game.venueCity}${game.venueRegion?', '+game.venueRegion:''}` : ''}</p>}
+          {venueIsVerified && <p><strong>Endereço:</strong> {game.venueAddress}, {game.venueCity}
+            {game.venueRegion ? ` - ${game.venueRegion}` : ''}</p>}
           <p><strong>Onde assistir:</strong> {game.broadcast || 'Transmissão a confirmar'}</p>
           {game.showScore && game.homeScore!==undefined && game.awayScore!==undefined &&
             <p><strong>Placar:</strong> {game.homeScore} x {game.awayScore}</p>}

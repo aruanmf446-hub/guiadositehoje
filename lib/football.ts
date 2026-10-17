@@ -11,8 +11,11 @@ type Match = {
   broadcaster_source: string | null; slug: string | null;
   game_date: string; seo_description: string | null; source_url: string | null;
   competition_slug: string | null;
+  venue_name: string | null; venue_address: string | null;
+  venue_city: string | null; venue_region: string | null;
+  venue_country: string | null;
 };
-const columns = 'id,league,kickoff_at,home_team,home_abbr,home_score,away_team,away_abbr,away_score,status,broadcast,broadcast_status,broadcaster_source,slug,game_date,seo_description,source_url,competition_slug';
+const columns = 'id,league,kickoff_at,home_team,home_abbr,home_score,away_team,away_abbr,away_score,status,broadcast,broadcast_status,broadcaster_source,slug,game_date,seo_description,source_url,competition_slug,venue_name,venue_address,venue_city,venue_region,venue_country';
 
 function toGame(m: Match): Game {
   const score = m.status === 'live' || m.status === 'finished';
@@ -36,6 +39,11 @@ function toGame(m: Match): Game {
     seoDescription: m.seo_description ?? undefined,
     sourceUrl: m.source_url ?? undefined, status: m.status,
     competitionSlug: m.competition_slug ?? undefined,
+    venueName: m.venue_name || undefined,
+    venueAddress: m.venue_address || undefined,
+    venueCity: m.venue_city || undefined,
+    venueRegion: m.venue_region || undefined,
+    venueCountry: m.venue_country || undefined,
   };
 }
 function addDays(iso: string, increment: number) {

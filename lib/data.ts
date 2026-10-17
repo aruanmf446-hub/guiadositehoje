@@ -18,6 +18,11 @@ export type Game = {
   kickoffAt?: string;
   seoDescription?: string;
   competitionSlug?: string;
+  venueName?: string;
+  venueAddress?: string;
+  venueCity?: string;
+  venueRegion?: string;
+  venueCountry?: string;
   sourceUrl?: string;
   status?: string;
 };
