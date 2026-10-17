@@ -603,3 +603,11 @@
  .office-mobile-hint{display:none}
  .scene-wall{height:27px;min-height:27px}
 }
+
+
+/* Ajuste validado por medidas do Chromium: estações inferiores sem interseção. */
+@media(max-width:700px){
+ .office-station,.office-station:nth-child(n){min-width:min(76px,100%)}
+ .office-station:nth-child(4){grid-column:1;grid-row:2;justify-self:center;width:100%}
+ .office-station:nth-child(5){grid-column:3;grid-row:2;justify-self:center;width:100%}
+}

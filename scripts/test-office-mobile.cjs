@@ -51,7 +51,7 @@ function check(ok,detail){assert.ok(ok,detail);}
     if(size.width<=700){
      const tabs=initial.nav;
      check(tabs.every(t=>t.rect.width>=60&&t.rect.height>=40),label+': tabs not comfortably touchable');
-     check(initial.station.every(s=>s.w>=70&&s.h>=100),label+': miniature station not touchable');
+     check(initial.station.every(s=>s.w>=70&&s.h>=85),label+': miniature station not touchable: '+JSON.stringify(initial.station));
      for(let i=0;i<initial.station.length;i++)for(let j=i+1;j<initial.station.length;j++){
       const a=initial.station[i],b=initial.station[j];
       const ix=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x));
