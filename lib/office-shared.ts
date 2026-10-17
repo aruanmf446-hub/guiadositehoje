@@ -15,12 +15,19 @@ export type GitHubSummary={
  activeChecks:{name:string;href:string;status:string}[];
  checkedAt:string;
 };
+export type OfficeStep={
+ title:string;detail:string;status:'done'|'active'|'next'|'error';at:string|null;
+};
+export type OfficeMission={
+ title:string;focus:string;windowLabel:string;stages:OfficeStep[];
+ recordedAt:string|null;source:'executor'|'agendamento';processed:number;received:number;
+};
 export type OfficeAgent={
  id:AgentId;state:AgentState;lastSeen:string|null;activity:string;
  deliveries:Delivery[];verifiedRun:boolean;
  nextAt:string|null;nextAction:string;queuedCount:number;
  lastOrigin:string;
- reportedPlan:string|null;
+ reportedPlan:string|null;mission:OfficeMission;
 };
 export type OfficeSnapshot={
  checkedAt:string;telemetry:boolean;agents:OfficeAgent[];

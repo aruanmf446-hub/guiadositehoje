@@ -16,7 +16,7 @@ const commitAgent=(message:string):AgentId|null=>{
 async function githubGet<T>(path:string):Promise<T>{
  const token=process.env.GITHUB_MONITOR_TOKEN;
  const response=await fetch(base+path,{
-  next:{revalidate:90},
+  next:{revalidate:600},
   headers:{
    'Accept':'application/vnd.github+json',
    'X-GitHub-Api-Version':'2022-11-28',

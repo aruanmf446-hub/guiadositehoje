@@ -43,7 +43,7 @@ function Station({agent,selected,onSelect}:{agent:OfficeAgent;selected:boolean;o
  return <button type="button" className={'office-station station-'+agent.id+(selected?' station-selected':'')}
   onClick={onSelect} aria-pressed={selected} aria-label={'Selecionar '+p.name+', '+stateLabels[agent.state]}
   style={{'--agent-accent':p.color} as CSSProperties}>
-  <span className="station-bubble">{agent.state==='working'?'Em ação!':agent.state==='recent'?'Entreguei!':agent.state==='error'?'Ops!':'Na minha mesa'}</span>
+  <span className="station-bubble">{agent.state==='working'?'Em ação!':agent.state==='recent'?'Rodada feita':agent.state==='error'?'Atenção':'Próximo turno'}</span>
   <span className="station-desk">
    <span className="station-monitor"><span className="station-screen"><i/><i/><i/><b/></span></span>
    <span className="station-keyboard"/>
@@ -87,8 +87,10 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
   } catch {setRefreshError('Não foi possível atualizar agora. Os últimos dados foram mantidos.');}
  },[]);
  useEffect(()=>{
-  const timer=window.setInterval(()=>{void refresh();},45000);
-  return ()=>window.clearInterval(timer);
+  const timer=window.setInterval(()=>{if(!document.hidden)void refresh();},600000);
+  const onVisible=()=>{if(document.visibilityState==='visible')void refresh();};
+  document.addEventListener('visibilitychange',onVisible);
+  return ()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
  },[refresh]);
  useEffect(()=>{
   const media=window.matchMedia('(max-width: 700px)');
@@ -212,7 +214,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
         </div>
        </div>
       </div>
-      <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Atualização automática a cada 45 segundos</span></div>
+      <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Consulta a cada 10 min · tarefas registradas no Supabase</span></div>
      </section>
 
      <button type="button" className={'office-sheet-backdrop'+(detailsOpen?' sheet-active':'')} onClick={closeDetails} aria-label="Fechar detalhes do agente" tabIndex={detailsOpen?0:-1}/>
@@ -230,6 +232,23 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
       <p className="inspector-mission">{selectedProfile.mission}</p>
       <span className="inspector-caption">SITUAÇÃO COMPROVADA</span>
       <p className="inspector-activity">{selectedAgent.activity}</p>
+      <section className="office-mission-log" aria-label="Etapas verificadas do trabalho">
+       <div className="office-mission-heading">
+        <div><small>DIÁRIO DE TRABALHO · SUPABASE</small>
+         <h3>{selectedAgent.mission.title}</h3></div>
+        <span>{selectedAgent.mission.windowLabel}</span>
+       </div>
+       <p className="office-mission-focus">{selectedAgent.mission.focus}</p>
+       <ol className="office-mission-steps">
+        {selectedAgent.mission.stages.map((step,i)=><li key={i}
+         className={'office-mission-step mission-step-'+step.status}>
+         <span className="mission-step-number" aria-hidden="true">{step.status==='done'?'✓':String(i+1).padStart(2,'0')}</span>
+         <div><strong>{step.title}</strong><p>{step.detail}</p>
+          {step.at&&<time dateTime={step.at}>{clock(step.at)}</time>}</div>
+        </li>)}
+       </ol>
+       <p className="office-mission-note">As etapas só são concluídas quando há registros reais. O período entre execuções não significa IA processando continuamente.</p>
+      </section>
       <div className="office-task-summary">
        <div><small>ÚLTIMO TRABALHO · {selectedAgent.lastOrigin}</small>
          <strong>{selectedAgent.deliveries[0]?.title||selectedAgent.activity}</strong>

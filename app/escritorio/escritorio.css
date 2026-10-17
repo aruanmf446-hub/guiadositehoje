@@ -619,3 +619,50 @@
  .office-content{width:100%;max-width:100%;margin:0;box-sizing:border-box;align-self:stretch}
  .office-dashboard,.office-scene-wrap,.office-scene,.scene-floor,.scene-stations{width:100%;min-width:0;box-sizing:border-box}
 }
+
+
+/* Diário de trabalho: etapas comprovadas da automação, sem progresso fictício. */
+.office-mission-log{
+  margin:14px 0 17px;padding:17px 16px 13px;background:#f5f6fc;
+  border:1px solid #e2e4f2;border-radius:15px;min-width:0;
+}
+.office-mission-heading{display:flex;justify-content:space-between;align-items:start;gap:8px}
+.office-mission-heading small{display:block;color:#9797b5;font-size:9px;font-weight:850;letter-spacing:1px}
+.office-mission-heading h3{font:800 16px/1.15 var(--font-display),sans-serif;letter-spacing:-.035em;margin:6px 0}
+.office-mission-heading>span{
+  flex:none;background:#e9e9fb;border:1px solid #dcdcf2;color:#6c69ac;
+  font-size:9px;font-weight:850;padding:6px 8px;border-radius:30px;
+}
+.office-mission-focus{font-size:11px;color:#54617c;line-height:1.55;margin:7px 0 14px}
+.office-mission-steps{padding:0;margin:0;list-style:none;position:relative}
+.office-mission-step{display:grid;grid-template-columns:27px minmax(0,1fr);gap:10px;align-items:start;position:relative;padding:0 0 15px}
+.office-mission-step:not(:last-child):before{
+  content:"";position:absolute;left:12px;top:27px;bottom:2px;width:1px;background:#d6dbea;
+}
+.mission-step-number{
+  position:relative;z-index:1;display:grid;place-items:center;width:26px;height:26px;
+  border:1px solid #dce0eb;border-radius:10px;background:#fff;color:#8e9ab0;
+  font-weight:850;font-size:10px;
+}
+.mission-step-done .mission-step-number{background:#e0f4ea;color:#168861;border-color:#b7e4cd}
+.mission-step-active .mission-step-number{background:#7067c9;color:white;border-color:#7067c9}
+.mission-step-error .mission-step-number{background:#ffeced;color:#ad4757;border-color:#f1b4bb}
+.office-mission-step strong{font-size:11px;color:#263755;line-height:1.3;display:block}
+.office-mission-step p{margin:4px 0 0;font-size:10px;line-height:1.5;color:#7b859c;overflow-wrap:anywhere}
+.office-mission-step time{display:block;margin-top:3px;font-size:9px;color:#76879c}
+.office-mission-note{
+  border-top:1px solid #dfe2ef;padding-top:11px;margin:0;
+  color:#8c95a8;font-size:10px;line-height:1.5;
+}
+.office-inspector .office-mission-log{flex-shrink:0}
+@media(max-width:1100px){
+ .office-mission-heading{flex-wrap:wrap}
+}
+@media(max-width:700px){
+ .office-mission-log{margin:10px 0;padding:12px 12px 10px}
+ .office-mission-heading h3{font-size:15px}
+ .office-mission-step{padding-bottom:12px}
+ .office-mission-step p{font-size:11px}
+ .office-mission-note{font-size:10px}
+ .office-inspector.sheet-open{overscroll-behavior:contain}
+}
