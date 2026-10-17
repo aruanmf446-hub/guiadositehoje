@@ -62,13 +62,18 @@ export default async function HomePage(){
           </form>
           <div className="hero-hint">Jogos encerrados? <Link href="/buscar">Também estão na pesquisa ↗</Link></div>
         </div>
-        <aside className="hero-panel" aria-label="Destaques da agenda">
-          <span className="hero-panel-overline">GUIA DE HOJE / EDIÇÃO DIÁRIA</span>
-          <div className="hero-panel-icon" aria-hidden="true">↗</div>
-          <strong>O que vem por aí no futebol?</strong>
-          <p>Consulte confrontos dos próximos sete dias, horários e informações de transmissão.</p>
-          <Link href="/futebol">Explorar a agenda <span aria-hidden="true">↗</span></Link>
-          <div className="panel-pattern" aria-hidden="true">G<span>.</span></div>
+        <aside className="hero-panel editorial-hero-panel" aria-label="Matéria principal do dia">
+          <div className="hero-panel-overline">DESTAQUE DA REDAÇÃO <span>·</span> GUIA DE HOJE</div>
+          {news[0] ? <>
+            <span className="hero-category">{news[0].category}</span>
+            <strong>{news[0].headline}</strong>
+            <p>{news[0].summary}</p>
+            <Link href={'/noticias/'+news[0].slug}>Ler matéria completa <span aria-hidden="true">↗</span></Link>
+          </> : <>
+            <strong>Informação antes do ruído.</strong>
+            <p>Os principais acontecimentos organizados para você entender o que importa.</p>
+            <Link href="/noticias">Últimas matérias <span aria-hidden="true">↗</span></Link>
+          </>}
         </aside>
       </section>
       <GamesSection games={gamesToday}/>

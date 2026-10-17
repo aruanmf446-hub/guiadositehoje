@@ -14,8 +14,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticle(slug);
   if (!article) return { title: 'Notícia não encontrada', robots: { index: false, follow: false } };
   return {
-    title: article.headline,
-    description: article.summary,
+    title: article.seoTitle||article.headline,
+    description: article.seoDescription||article.summary,
     robots: article.isAggregated ? {index:false,follow:true} : {index:true,follow:true},
     alternates: { canonical: `/noticias/${article.slug}` },
     openGraph: {
@@ -38,7 +38,7 @@ export default async function ArticlePage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: article.headline,
-    description: article.summary,
+    description: article.seoDescription||article.summary,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     datePublished: article.publishedAt,
     dateModified: article.updatedAt,
@@ -57,11 +57,11 @@ export default async function ArticlePage({ params }: Props) {
       <nav className="article-breadcrumb" aria-label="Localização">
         <Link href="/">Início</Link> / <Link href="/noticias">Notícias</Link> / {article.category}
       </nav>
-      <article className="article-detail">
-        <span className="kicker">{article.category}</span>
+      <article className="article-detail news-article">
+        <div className="news-article-kicker"><span>{article.category}</span><span>Redação Guia de Hoje</span></div>
         <h1>{article.headline}</h1>
         <p className="article-summary">{article.summary}</p>
-        <time dateTime={article.publishedAt}>
+        <time className="news-article-date" dateTime={article.publishedAt}>
           Publicado em {new Intl.DateTimeFormat('pt-BR', {
             timeZone: 'America/Sao_Paulo', dateStyle: 'long', timeStyle: 'short',
           }).format(new Date(article.publishedAt))}
@@ -70,8 +70,13 @@ export default async function ArticlePage({ params }: Props) {
           <img src={article.imageUrl} alt={article.imageAlt || article.headline} />
           {article.imageAlt && <figcaption>{article.imageAlt}</figcaption>}
         </figure>}
-        <div className="article-content">{article.body.split(/\n{2,}/).map((paragraph, i) =>
+        <div className="article-content editorial-article-body">{article.body.split(/\n{2,}/).map((paragraph, i) =>
+          paragraph.startsWith('## ')?<h2 key={i}>{paragraph.slice(3)}</h2>:
           <p key={i}>{paragraph}</p>)}</div>
+        {article.generatedByAi&&<p className="editorial-transparency">
+          Conteúdo elaborado com apoio de IA, com base em material da fonte identificada abaixo.
+          Informações sujeitas a atualização.
+        </p>}
         {article.sourceUrl && <p className="article-source">
           Fonte: <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer">
             {article.sourceName || 'Fonte original'} ↗

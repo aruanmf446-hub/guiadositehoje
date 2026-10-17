@@ -4,35 +4,42 @@ import Link from 'next/link';
 import type {WatchTitle,WatchKind} from '@/lib/data';
 export function WatchSection({titles}:{titles:WatchTitle[]}){
   const [kind,setKind]=useState<WatchKind>('Filmes');
-  const choices=(titles||[]).filter(x=>x.kind===kind).slice(0,6);
-  return <section id="assistir" className="home-section entertainment-section" aria-labelledby="watch-heading">
+  const items=titles.filter(t=>t.kind===kind);
+  const [featured,...others]=items;
+  return <section id="assistir" className="home-section watch-edit-section" aria-labelledby="watch-heading">
     <div className="editorial-section-head">
-      <div><div className="section-eyebrow">TEMPO LIVRE</div>
-        <h2 id="watch-heading">Para ver hoje<span className="heading-dot">.</span></h2>
-        <p>Filmes em destaque e programação de séries. Consulte a disponibilidade no Brasil.</p>
+      <div><div className="section-eyebrow">CULTURA / ENTRETENIMENTO</div>
+        <h2 id="watch-heading">Vale a sessão<span className="heading-dot">.</span></h2>
+        <p>Filmes em destaque e séries na programação, sem inventar serviços disponíveis no Brasil.</p>
       </div>
-      <Link href="/filmes-series" className="text-link">Explorar catálogo <span aria-hidden="true">↗</span></Link>
+      <Link className="text-link" href="/filmes-series">Explorar títulos <span aria-hidden="true">↗</span></Link>
     </div>
-    <div className="media-tabs" role="group" aria-label="Tipo de conteúdo">
+    <div className="film-tabs" role="group" aria-label="Seleção de entretenimento">
       <button type="button" aria-pressed={kind==='Filmes'} onClick={()=>setKind('Filmes')}>Filmes</button>
-      <button type="button" aria-pressed={kind==='Séries'} onClick={()=>setKind('Séries')}>Séries e programas</button>
+      <button type="button" aria-pressed={kind==='Séries'} onClick={()=>setKind('Séries')}>Séries</button>
     </div>
-    {choices.length===0?<p className="no-games">Ainda não há títulos cadastrados nesta seção.</p>:
-    <div className="media-grid">
-      {choices.map((item,i)=><article key={item.id} className="media-card">
-        <div className={'media-art art-'+i%6}>
-          <span className="media-art-icon" aria-hidden="true">{kind==='Filmes'?'◧':'▷'}</span>
-          <span className="media-art-title">{item.title.replace(/\s*\(2026 film\)$/i,'')}</span>
-          <span className="media-art-type">{kind==='Filmes'?'CINEMA':'SÉRIES · TV'}</span>
+    {!featured?<p className="no-games">Nossa seleção de títulos será atualizada em breve.</p>:
+    <div className="cinema-editorial">
+      <article className="cinema-feature">
+        <span className="cinema-feature-top">01 / SELEÇÃO DO GUIA</span>
+        <div className="cinema-feature-copy">
+          <span>{kind==='Filmes'?'CINEMA · 2026':'SÉRIES · PROGRAMAÇÃO'}</span>
+          <h3>{featured.title.replace(/\s*\(\d{4} film\)$/i,'')}</h3>
+          <p>{featured.synopsis||'Confira a ficha desta produção e acompanhe onde assistir.'}</p>
         </div>
-        <div className="media-card-content">
-          <span className="media-status">{item.availabilityStatus==='schedule_br'?'Programação brasileira':'Disponibilidade a confirmar'}</span>
-          <h3>{item.title.replace(/\s*\(2026 film\)$/i,'')}</h3>
-          <p>{item.availabilityStatus==='schedule_br'?item.platform:'Veja a ficha e confira onde assistir na sua região.'}</p>
-          {item.watchUrl&&<a href={item.watchUrl} rel="noopener noreferrer" target="_blank" className="text-link">
-            Consultar fonte <span aria-hidden="true">↗</span></a>}
-        </div>
-      </article>)}
+        {featured.sourceUrl?<a href={featured.sourceUrl} target="_blank" rel="noopener noreferrer">
+          Consultar a ficha oficial <span aria-hidden="true">↗</span></a>:null}
+      </article>
+      <div className="cinema-list">
+        {others.slice(0,5).map((item,i)=><article key={item.id} className="cinema-list-item">
+          <span className="cinema-list-n">{String(i+2).padStart(2,'0')}</span>
+          <div><span className="cinema-list-status">{item.availabilityStatus==='schedule_br'?'TV brasileira identificada':'Disponibilidade no Brasil a confirmar'}</span>
+            <h3>{item.title.replace(/\s*\(\d{4} film\)$/i,'')}</h3>
+            <p>{item.synopsis||'Informações e ficha de referência.'}</p>
+          </div>
+          {item.sourceUrl&&<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label={'Consultar '+item.title}>↗</a>}
+        </article>)}
+      </div>
     </div>}
   </section>;
 }

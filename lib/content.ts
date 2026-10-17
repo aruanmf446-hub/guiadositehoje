@@ -5,7 +5,7 @@ import type { Game, NewsArticle, NewsItem, WatchKind, WatchTitle } from '@/lib/d
 type NewsRow = {
   id: string; slug: string; headline: string; summary: string; body?: string;
   category: string; image_url: string | null; image_alt: string | null;
-  published_at: string; updated_at: string; source_name: string | null; source_url: string | null; is_aggregated: boolean;
+  published_at: string; updated_at: string; source_name: string | null; source_url: string | null; is_aggregated: boolean; seo_title:string|null;seo_description:string|null;generated_by_ai:boolean;editorial_verification:string;
 };
 
 function mapNews(row: NewsRow): NewsItem {
@@ -15,12 +15,14 @@ function mapNews(row: NewsRow): NewsItem {
     imageAlt: row.image_alt || undefined, publishedAt: row.published_at,
     updatedAt: row.updated_at, sourceName: row.source_name || undefined,
     sourceUrl: row.source_url || undefined, isAggregated: row.is_aggregated,
+    seoTitle:row.seo_title||undefined,seoDescription:row.seo_description||undefined,
+    generatedByAi:row.generated_by_ai,editorialVerification:row.editorial_verification,
   };
 }
 
 export async function getPublishedNews(limit = 8): Promise<NewsItem[]> {
   const { data, error } = await getSupabase().from('news_articles')
-    .select('id,slug,headline,summary,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated')
+    .select('id,slug,headline,summary,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
     .eq('status', 'published').lte('published_at', new Date().toISOString())
     .order('published_at', { ascending: false }).limit(limit);
   if (error) { console.error('Erro ao consultar notícias:', error.message); return []; }
@@ -29,7 +31,7 @@ export async function getPublishedNews(limit = 8): Promise<NewsItem[]> {
 
 export async function getArticle(slug: string): Promise<NewsArticle | null> {
   const { data, error } = await getSupabase().from('news_articles')
-    .select('id,slug,headline,summary,body,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated')
+    .select('id,slug,headline,summary,body,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
     .eq('slug', slug).eq('status', 'published')
     .lte('published_at', new Date().toISOString()).maybeSingle();
   if (error) { console.error('Erro ao consultar artigo:', error.message); return null; }

@@ -31,6 +31,10 @@ export type NewsItem = {
   imageUrl?: string;
   imageAlt?: string;
   isAggregated?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  generatedByAi?: boolean;
+  editorialVerification?: string;
   publishedAt: string;
   updatedAt: string;
   sourceName?: string;

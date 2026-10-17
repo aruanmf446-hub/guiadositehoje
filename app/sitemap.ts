@@ -10,6 +10,9 @@ export default async function sitemap():Promise<MetadataRoute.Sitemap>{
   return [
     {url:siteUrl,lastModified:new Date(),changeFrequency:'daily',priority:1},
     {url:siteUrl+'/noticias',lastModified:new Date(),changeFrequency:'daily',priority:.8},
+    {url:siteUrl+'/sobre',lastModified:new Date(),changeFrequency:'monthly',priority:.3},
+    {url:siteUrl+'/politica-editorial',lastModified:new Date(),changeFrequency:'monthly',priority:.3},
+    {url:siteUrl+'/privacidade',lastModified:new Date(),changeFrequency:'monthly',priority:.3},
     {url:siteUrl+'/futebol',lastModified:new Date(),changeFrequency:'daily',priority:.9},
     {url:siteUrl+'/filmes-series',lastModified:new Date(),changeFrequency:'daily',priority:.8},
     {url:siteUrl+'/futebol/onde-assistir',lastModified:new Date(),changeFrequency:'daily',priority:.8},
