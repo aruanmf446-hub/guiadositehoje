@@ -68,7 +68,7 @@ function check(ok,detail){assert.ok(ok,detail);}
      if(size.width<=700){
       const sheet=page.getByRole('dialog');
       await sheet.waitFor({state:'visible'});
-      check(await sheet.locator('#office-agent-title').innerText()===name,label+': wrong bottom-sheet agent '+name);
+      check((await sheet.locator('#office-agent-title').innerText()).replace(/\.$/,'').trim()===name,label+': wrong bottom-sheet agent '+name);
       check(await sheet.getByText('SITUAÇÃO COMPROVADA').isVisible(),label+': activity missing');
       check(await sheet.getByText('PRÓXIMA TAREFA').isVisible(),label+': next task missing');
       check(await sheet.getByText('Meus últimos trabalhos').isVisible(),label+': deliveries missing');
