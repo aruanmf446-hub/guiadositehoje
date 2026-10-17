@@ -58,15 +58,15 @@ function Deliveries({items,emptyLabel}:{items:Delivery[];emptyLabel:string}){
  return <div className="office-delivery-list">
  {items.length===0?<div className="office-empty"><span>✳</span><strong>Nenhuma entrega por aqui.</strong><p>{emptyLabel}</p></div>:
  items.map(item=><a className="office-delivery" key={item.id} href={item.href} target="_blank" rel="noreferrer">
-  <span className={'delivery-icon delivery-'+item.agentId}>{item.agentId==='futebol'?'⚽':item.agentId==='noticias'?'✎':item.agentId==='filmes'?'◩':'▷'}</span>
-  <span className="delivery-copy"><strong>{item.title}</strong><small>{idLabels[item.agentId]} · {clock(item.time)}</small></span>
+  <span className={'delivery-icon delivery-'+item.agentId}>{item.origin==='github'?'⌘':item.agentId==='futebol'?'⚽':item.agentId==='noticias'?'✎':item.agentId==='filmes'?'◩':'▷'}</span>
+  <span className="delivery-copy"><strong>{item.title}</strong><small>{item.origin==='github'?'GitHub · alteração de código':idLabels[item.agentId]+' · publicação'} · {clock(item.time)}</small></span>
   <span className="delivery-arrow" aria-hidden="true">↗</span>
  </a>)}
  </div>;
 }
 export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const [snapshot,setSnapshot]=useState(initial);
- const [selected,setSelected]=useState<AgentId>('futebol');
+ const [selected,setSelected]=useState<AgentId>('seo');
  const [view,setView]=useState<View>('escritorio');
  const [filter,setFilter]=useState<AgentId|'todos'>('todos');
  const [loading,setLoading]=useState(false);
@@ -86,7 +86,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const selectedAgent=snapshot.agents.find(a=>a.id===selected)||snapshot.agents[0];
  const selectedProfile=profiles.find(p=>p.id===selectedAgent.id)!;
  const displayed=filter==='todos'?snapshot.deliveries:snapshot.deliveries.filter(x=>x.agentId===filter);
- const recentDeliveries=selectedAgent.deliveries.slice(0,5);
+ const recentDeliveries=selectedAgent.deliveries.slice(0,4);
  async function refreshNow(){setLoading(true);await refresh();setLoading(false);}
  const working=snapshot.agents.filter(a=>a.state==='working').length;
  return <div className="office-shell">
@@ -123,7 +123,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
    <header className="office-topbar">
     <div className="office-breadcrumb">WORKSPACE <span>/</span> <strong>{view==='escritorio'?'Escritório':view==='equipe'?'Meu time':'Entregas'}</strong></div>
     <div className="office-top-actions">
-     <span className="office-observed"><span className="observed-dot"/>{working>0?working+' em execução':'Acompanhando automações'}</span>
+     <span className="office-observed"><span className="observed-dot"/>{working>0?working+' execução(ões) confirmada(s)':'Agentes monitorados'}</span><a className="office-github-chip" href="https://github.com/aruanmf446-hub/guiadositehoje/actions" target="_blank" rel="noreferrer"><span>⌘</span> {snapshot.github.connected?snapshot.github.activeChecks.length?snapshot.github.activeChecks.length+' verificação(ões) no GitHub':'GitHub conectado':'GitHub indisponível'} ↗</a>
      <button type="button" className="office-refresh" onClick={()=>{void refreshNow();}} disabled={loading} title="Atualizar dados">
       <span aria-hidden="true" className={loading?'spin':' '}>↻</span> Atualizar
      </button>
@@ -134,7 +134,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     <div className="office-heading">
      <div><p className="office-eyebrow"><span>✳</span> CENTRAL DE OBSERVAÇÃO</p>
      <h1>{view==='escritorio'?'Bem-vindo ao escritório.':view==='equipe'?'Conheça a equipe.':'O que já saiu daqui.'}<span className="title-sparkle">✦</span></h1>
-     <p className="office-subtitle">{view==='escritorio'?'Um cantinho para acompanhar quem faz a mágica acontecer — com dados de verdade.':
+     <p className="office-subtitle">{view==='escritorio'?'Seu time, as últimas entregas e a próxima execução — tudo ligado ao GitHub e ao Supabase.':
       view==='equipe'?'Cada agente tem uma especialidade, uma mesa e uma história de entregas.':
       'Os últimos registros publicados pelos coletores, organizados para você explorar.'}</p></div>
      <div className="office-check"><span className="check-icon">◷</span><span>ÚLTIMA CONSULTA<strong>{clock(snapshot.checkedAt)}</strong></span></div>
@@ -160,7 +160,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
         </div>
        </div>
       </div>
-      <div className="scene-foot"><span><span className="legend-working"/> Executando, se confirmado pelo banco</span><span>✦ Animação ilustrativa</span></div>
+      <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Atualização automática a cada 45 segundos</span></div>
      </section>
 
      <aside className="office-inspector">
@@ -173,13 +173,17 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
       <div className="inspector-divider"/>
       <span className="inspector-caption">MINHA MISSÃO</span>
       <p className="inspector-mission">{selectedProfile.mission}</p>
-      <span className="inspector-caption">O QUE ACONTECE AGORA</span>
+      <span className="inspector-caption">SITUAÇÃO COMPROVADA</span>
       <p className="inspector-activity">{selectedAgent.activity}</p>
-      <div className="inspector-when">◷ Último registro <strong>{clock(selectedAgent.lastSeen)}</strong></div>
+      <div className="office-task-summary">
+       <div><small>ÚLTIMO REGISTRO · {selectedAgent.lastOrigin}</small><strong>{clock(selectedAgent.lastSeen)}</strong></div>
+       <div><small>{selectedAgent.nextAction}</small><strong>{selectedAgent.nextAt?clock(selectedAgent.nextAt)+' (Brasília)':'Sem previsão confirmada'}</strong></div>
+       {selectedAgent.id==='seo'&&selectedAgent.queuedCount>0&&<div className="office-queue">◈ {selectedAgent.queuedCount} pauta(s) com fonte aguardando redação</div>}
+      </div>
       <div className="inspector-divider"/>
       <div className="inspector-recent-title"><strong>Meus últimos trabalhos</strong><span>{recentDeliveries.length} recentes</span></div>
-      <Deliveries items={recentDeliveries} emptyLabel="Ainda não há entrega publicada para este agente."/>
-      {!selectedAgent.verifiedRun&&<p className="inspector-note">Status de execução não confirmado. A atividade exibida foi inferida a partir das publicações.</p>}
+      <Deliveries items={recentDeliveries} emptyLabel="Ainda não há publicação nem commit associado a esta especialidade."/>
+      {!selectedAgent.verifiedRun&&<p className="inspector-note">Os commits são associados pela descrição da alteração; não identificam qual conversa ou modelo fez o trabalho. Só o Supabase confirma execução.</p>}
      </aside>
     </div>}
 
@@ -194,14 +198,14 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
      })}
     </div>}
     {view==='entregas'&&<div className="office-history">
-     <div className="history-head"><div><strong>Arquivo de entregas</strong><p>Registros publicados, com acesso ao conteúdo original no portal.</p></div><span>ÚLTIMOS REGISTROS</span></div>
+     <div className="history-head"><div><strong>Arquivo de entregas</strong><p>Publicações do portal e alterações do repositório, com data, fonte e links verificáveis.</p></div><span>ÚLTIMOS REGISTROS</span></div>
      <div className="history-filters">
       <button type="button" onClick={()=>setFilter('todos')} className={filter==='todos'?'filter-active':''}>Todos</button>
-      {profiles.filter(p=>p.id!=='seo').map(p=><button type="button" key={p.id} onClick={()=>setFilter(p.id)} className={filter===p.id?'filter-active':''}>{idLabels[p.id]}</button>)}
+      {profiles.map(p=><button type="button" key={p.id} onClick={()=>setFilter(p.id)} className={filter===p.id?'filter-active':''}>{idLabels[p.id]}</button>)}
      </div>
      <Deliveries items={displayed} emptyLabel="Nenhum registro publicado nesta categoria."/>
     </div>}
-    <footer className="office-footer"><span>✳ Feito com cuidado para o Guia de Hoje</span><span>{snapshot.telemetry?'Execuções verificadas no banco':'Exibindo publicações; telemetria interna não conectada'} · Atualização a cada 45s</span></footer>
+    <footer className="office-footer"><span>✳ GitHub: {snapshot.github.connected?'conectado':'indisponível'} · Supabase: {snapshot.telemetry?'agendamentos verificados':'sem telemetria interna'}</span><span>O trabalho dentro de outra conversa só aparece quando gerar um evento, commit ou registro verificável.</span></footer>
    </div>
   </div>
  </div>;
