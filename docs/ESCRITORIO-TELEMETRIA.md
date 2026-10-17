@@ -25,3 +25,30 @@ ChatGPT não expõe automaticamente ao site o estado interno de outras conversas
 Em desktops com altura de até 1000px, o escritório mantém o cenário e a ficha visíveis numa única viewport; conteúdo da ficha rola internamente. Em telefones, mantém layout vertical acessível e rolável.
 
 A consulta atualiza a cada 45 segundos. As consultas externas ao GitHub possuem cache próprio de 90 segundos.
+
+
+## Agentes de outros chats (integração ativa, opt-in)
+
+A tabela privada \`public.office_agent_activity\` foi criada no Supabase do Guia de Hoje. Ela permite a um executor autorizado informar o trabalho ao escritório **sem compartilhar senhas em texto ou abrir o acesso público**.
+
+Quando iniciar uma tarefa em outro chat/serviço, o executor pode gravar seu identificador e um resumo verdadeiro:
+
+\`\`\`sql
+insert into public.office_agent_activity
+ (agent_id,status,task,next_task,updated_at,expires_at)
+values
+ ('seo','working','Redigindo matéria com evidências verificadas',
+  'Validar conteúdo e publicar caso passe nas verificações',
+  now(),now()+interval '10 minutes')
+on conflict(agent_id) do update set
+ status=excluded.status,task=excluded.task,next_task=excluded.next_task,
+ updated_at=excluded.updated_at,expires_at=excluded.expires_at;
+\`\`\`
+
+Para indicar conclusão, use a mesma instrução com \`status='completed'\`, \`task\` contendo a entrega e \`evidence_url\` com URL comprovável. Estados permitidos: \`working\`, \`waiting\`, \`completed\`, \`error\`. IDs válidos: \`seo\`, \`noticias\`, \`futebol\`, \`filmes\`, \`series\`.
+
+Atualize o heartbeat de um agente em execução ao menos uma vez a cada **5 minutos**. Após 10 minutos sem nova atualização (ou expiração), o escritório deixa de exibir "trabalhando" por esse registro. O dashboard também observa diretamente os jobs do Supabase.
+
+**Não** envie chaves secretas no chat; execute o registro na conexão Supabase autorizada. A tabela tem RLS e nenhum acesso anônimo ou de usuário comum.
+
+Os agentes existentes não começam a executar automaticamente porque o escritório existe: a conexão observa ações reais dos coletores e editores. A escrita de tarefas continua sendo responsabilidade dos jobs e executores originais.
