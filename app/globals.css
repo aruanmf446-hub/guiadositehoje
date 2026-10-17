@@ -697,3 +697,8 @@ html {scroll-padding-top:104px;}
  .media-detail-layout{padding-top:38px}
  .media-related a{overflow-wrap:anywhere}
 }
+
+/* Flex-item da homepage: permitir encolher no viewport de 320px. */
+.homepage{width:100%;min-width:0}
+.homepage .home-hero,.homepage .hero-copy,.homepage .watch-edit-section,.homepage .watch-feature-layout,.homepage .watch-featured-link,.homepage .game-paper,.homepage .watch-small-grid{min-width:0;max-width:100%}
+@media(max-width:530px){.homepage .hero-search{min-width:0;width:100%}.homepage .search-box input{min-width:0;width:0;flex:1 1 0}}
