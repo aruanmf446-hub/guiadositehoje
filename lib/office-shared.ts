@@ -20,6 +20,7 @@ export type OfficeAgent={
  deliveries:Delivery[];verifiedRun:boolean;
  nextAt:string|null;nextAction:string;queuedCount:number;
  lastOrigin:string;
+ reportedPlan:string|null;
 };
 export type OfficeSnapshot={
  checkedAt:string;telemetry:boolean;agents:OfficeAgent[];
