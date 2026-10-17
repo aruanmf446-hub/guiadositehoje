@@ -10,6 +10,7 @@ type MatchRow={id:string;home_team:string;away_team:string;league:string;updated
 type WatchRow={id:string;title:string;kind:string;platform:string;updated_at:string};
 type Run={agentId:AgentId;time:string;doneAt:string|null;status:string;count:number};
 type Job={jobname:string;schedule:string;active:boolean;last_run:string|null;last_status:string|null};
+type Heartbeat={agent_id:string;status:'working'|'waiting'|'completed'|'error';task:string;next_task:string|null;updated_at:string;expires_at:string|null;evidence_url:string|null};
 
 const recent=(time:string|null|undefined,minutes:number,now:number)=>
  Boolean(time&&!Number.isNaN(Date.parse(time))&&now-Date.parse(time)>=-60000&&now-Date.parse(time)<minutes*60000);
@@ -42,16 +43,17 @@ function nextCron(schedule:string,now:number):string|null{
  }
  return null;
 }
-function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number,telemetry:boolean,now:number):OfficeAgent{
+function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number,heartbeat:Heartbeat|undefined,telemetry:boolean,now:number):OfficeAgent{
  const run=runs.slice().sort((a,b)=>Date.parse(b.time)-Date.parse(a.time))[0];
  const last=items[0]||null;
- const lastSeen=newer(run?.doneAt||run?.time||null,last?.time||null);
+ let lastSeen=newer(run?.doneAt||run?.time||null,last?.time||null);
  const job=jobs.find(x=>x.jobname===jobName[id]);
  const nextAt=job?.active?nextCron(job.schedule,now):null;
  const nextAction=!telemetry?'Aguardando conexão da telemetria':
   !job?'Agendamento não encontrado':
   !job.active?'Agendamento desativado':taskName[id];
  let state:AgentState='waiting',activity='Aguardando próxima tarefa';
+ const heartbeatFresh=Boolean(heartbeat&&recent(heartbeat.updated_at,10,now)&&(!heartbeat.expires_at||Date.parse(heartbeat.expires_at)>now));
  let lastOrigin='Nenhuma atividade confirmada';
 
  if(run?.status==='running'||run?.status==='processing'||run?.status==='in_progress'){
@@ -77,14 +79,23 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
  if(id==='seo'&&!run&&!last&&queue===0){
   state='unconnected';activity='Ainda sem execução ou entrega registrada';
  }
+ // Estado emitido pelo executor autorizado. Sem heartbeat recente, não inventamos processamento.
+ if(heartbeatFresh&&heartbeat){
+  if(heartbeat.status==='working'){state='working';activity='Informado pelo agente: '+heartbeat.task;}
+  else if(heartbeat.status==='completed'){state='recent';activity='Concluído pelo agente: '+heartbeat.task;}
+  else if(heartbeat.status==='error'){state='error';activity='Agente relatou problema: '+heartbeat.task;}
+  else if(state!=='working'){state='waiting';activity='Agente aguarda: '+heartbeat.task;}
+  lastSeen=newer(lastSeen,heartbeat.updated_at);
+ }
 
  const recentRun=run?.doneAt||run?.time;
  lastOrigin=last&&(!recentRun||Date.parse(last.time)>Date.parse(recentRun))?
   last.origin==='github'?'Commit no GitHub':'Publicação no site':
   run?'Execução no Supabase':last?'Publicação ou commit':'Nenhuma atividade confirmada';
+ if(heartbeatFresh&&heartbeat)lastOrigin='Registro do agente no Supabase';
 
  return {id,state,lastSeen,activity,deliveries:items.slice(0,8),verifiedRun:Boolean(telemetry&&run),
-  nextAt,nextAction,queuedCount:id==='seo'?queue:0,lastOrigin};
+  nextAt,nextAction,queuedCount:id==='seo'?queue:0,lastOrigin,reportedPlan:heartbeatFresh?heartbeat?.next_task||null:null};
 }
 
 export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
@@ -111,18 +122,20 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
 
  const runs:Run[]=[],jobs:Job[]=[];
  let telemetry=false,queue=0;
+ const heartbeats:Heartbeat[]=[];
  // A telemetria privilegiada é habilitada apenas atrás da autenticação do escritório.
  const secret=process.env.OFFICE_PASSWORD?process.env.SUPABASE_SERVICE_ROLE_KEY:undefined;
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,schedule,evidence,drafts]=await Promise.all([
+  const [fixture,editorial,writer,schedule,evidence,drafts,activity]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written').order('requested_at',{ascending:false}).limit(20),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count').order('requested_at',{ascending:false}).limit(30),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
    admin.rpc('office_schedule_status'),
    admin.from('editorial_evidence').select('article_id').limit(80),
-   admin.from('news_articles').select('id').eq('status','draft').limit(150)
+   admin.from('news_articles').select('id').eq('status','draft').limit(150),
+   admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!schedule.error;
   if(!fixture.error)for(const x of fixture.data||[]){
@@ -142,13 +155,14 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   if(!schedule.error&&Array.isArray(schedule.data)){
    for(const x of schedule.data as Job[])if(x&&typeof x.jobname==='string')jobs.push(x);
   }
+  if(!activity.error)for(const row of (activity.data||[]) as Heartbeat[])heartbeats.push(row);
   if(!evidence.error&&!drafts.error){
    const draftIds=new Set((drafts.data||[]).map(x=>x.id));
    queue=(evidence.data||[]).filter(x=>draftIds.has(x.article_id)).length;
   }
  }
  const agents=profiles.map(p=>classify(p.id,deliveries.filter(x=>x.agentId===p.id),
-  runs.filter(x=>x.agentId===p.id),jobs,queue,telemetry,now));
+  runs.filter(x=>x.agentId===p.id),jobs,queue,heartbeats.find(x=>x.agent_id===p.id),telemetry,now));
  const failures=[n.error,m.error,w.error].filter(Boolean);
  return {checkedAt,telemetry,agents,deliveries,github:git.summary,
   notice:failures.length?'Algumas publicações não puderam ser consultadas.':null};
