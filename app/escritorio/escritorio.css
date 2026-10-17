@@ -935,3 +935,132 @@
 @media(max-width:700px) and (max-height:620px){
  .scene-lounge,.scene-art-board,.scene-cabinet{display:none}
 }
+
+
+/* A cena aprovada em imagem: cenário ilustrado, seis áreas acessíveis e
+   TODOS os estados e rótulos continuam renderizados pelo React/Supabase.
+   O quadro visual é um asset local otimizado; sem dependência de CDN. */
+.office-scene{
+ background:#f6e1c5;
+ overflow-y:auto!important;overflow-x:clip!important;
+ scrollbar-width:thin;scrollbar-color:#dfbca3 transparent;
+ display:block!important;overscroll-behavior-y:contain
+}
+.office-scene .scene-wall{display:none!important}
+.office-scene .scene-floor{
+ box-sizing:border-box;position:relative!important;display:block!important;
+ width:100%!important;height:auto!important;min-height:100%!important;
+ aspect-ratio:900 / 1030;flex:none!important;
+ border:0!important;
+ background:#f7e6cf url('/images/escritorio-acolhedor.webp') center top / 100% 100% no-repeat!important
+}
+.office-scene .scene-floor:before,
+.office-scene .scene-sunbeam,
+.office-scene .scene-rug,
+.office-scene .scene-bookshelf,
+.office-scene .scene-cabinet,
+.office-scene .scene-lounge,
+.office-scene .scene-art-board,
+.office-scene .scene-plant,
+.office-scene .scene-water{display:none!important}
+.office-scene .scene-stations{
+ position:absolute!important;inset:0!important;z-index:5!important;
+ display:block!important;grid-template-columns:none!important;grid-template-rows:none!important;
+ padding:0!important;margin:0!important;
+ width:100%!important;height:100%!important;min-height:0!important;
+}
+.office-scene .office-station,.office-scene .office-station:nth-child(n){
+ box-sizing:border-box;position:absolute!important;display:block!important;
+ width:33.333333%!important;height:25%!important;min-width:0!important;max-width:none!important;
+ padding:0!important;margin:0!important;border:0!important;transform:none!important;
+ top:17%!important;left:0!important;justify-self:auto!important;
+ background:transparent!important;overflow:visible;cursor:pointer;
+ transition:filter .15s ease
+}
+.office-scene .office-station:nth-child(1){left:0!important;top:17%!important}
+.office-scene .office-station:nth-child(2){left:33.333333%!important;top:17%!important}
+.office-scene .office-station:nth-child(3){left:66.666666%!important;top:17%!important}
+.office-scene .office-station:nth-child(4){left:0!important;top:57.5%!important}
+.office-scene .office-station:nth-child(5){left:33.333333%!important;top:57.5%!important}
+.office-scene .office-station:nth-child(6){left:66.666666%!important;top:57.5%!important}
+.office-scene .office-station:before,
+.office-scene .station-desk,
+.office-scene .station-chair,
+.office-scene .station-sprite{display:none!important}
+.office-scene .office-station:hover{filter:brightness(1.04)}
+.office-scene .station-bubble{
+ display:inline-flex!important;align-items:center;justify-content:center;
+ position:absolute!important;top:0!important;right:7%!important;left:auto!important;
+ width:max-content;max-width:93%;min-height:22px;
+ padding:3px 8px!important;border:2px solid #e2dcd4!important;border-radius:12px!important;
+ background:#fff!important;box-shadow:0 4px 0 #ab8b7f3a!important;
+ transform:rotate(-2deg)!important;
+ font:800 clamp(8px,1vw,11px)/1.12 var(--font-body),sans-serif!important;
+ color:#60647a!important;white-space:nowrap;z-index:3!important
+}
+.office-scene .station-bubble:after{bottom:-7px;border-top-color:#fff}
+.office-scene .station-nameplate{
+ position:absolute!important;left:9%!important;right:9%!important;bottom:0!important;top:auto!important;
+ box-sizing:border-box;height:30%!important;min-height:0!important;
+ border:2px solid #e2c8a8;border-radius:13px;padding:4px 2px;
+ display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;
+ background:#fffdf8!important;box-shadow:0 4px 0 #d7b895!important;z-index:2!important;
+ text-align:center
+}
+.office-scene .station-nameplate strong{font-size:clamp(10px,1.35vw,17px)!important;
+ line-height:1.12;color:#243353!important}
+.office-scene .station-nameplate small{font-size:clamp(7.5px,.85vw,12px)!important;
+ line-height:1.12;color:#77758c!important;white-space:normal!important;
+ overflow:visible!important;text-overflow:clip!important}
+.office-scene .station-selected .station-nameplate{
+ border-color:var(--agent-accent)!important;box-shadow:0 5px 0 var(--agent-accent),0 0 13px #fff!important;
+}
+.office-scene .station-selected .station-bubble{border-color:var(--agent-accent)!important;
+ background:#fff9f2!important}
+.office-scene .office-station[data-state="working"] .station-bubble{
+ border-color:#5ac79e!important;background:#e9fff3!important;color:#167253!important;
+}
+.office-scene .office-station[data-state="error"] .station-bubble{
+ border-color:#e48b9b!important;background:#fff0f3!important;color:#a13a50!important
+}
+.office-scene .office-station:focus-visible{outline:3px solid #7565ce!important;
+ outline-offset:0;border-radius:15px}
+.office-scene .office-station:focus-visible .station-nameplate{
+ border-color:#7565ce!important
+}
+@media(min-width:701px) and (max-width:1150px){
+ .office-scene .station-nameplate strong{font-size:clamp(10px,1.1vw,14px)!important}
+ .office-scene .station-nameplate small{font-size:clamp(7px,.8vw,10px)!important}
+ .office-scene .station-bubble{font-size:clamp(7px,.8vw,10px)!important;padding:3px 4px!important}
+}
+@media(max-width:700px){
+ .office-scene{
+   flex:1;min-height:0;
+   overflow-y:auto!important;overflow-x:clip!important;
+   margin:0 6px!important;border-radius:12px
+ }
+ .office-scene .scene-floor{min-height:100%!important;height:auto!important;
+   aspect-ratio:900 / 1030;flex:none!important
+ }
+ .office-scene .office-station,.office-scene .office-station:nth-child(n){
+  height:25%!important;max-width:none!important;min-height:0!important
+ }
+ .office-scene .station-nameplate{padding:3px 1px;height:30%!important;
+   border-width:1.5px!important;border-radius:8px}
+ .office-scene .station-nameplate strong{font-size:clamp(8px,2.8vw,12px)!important}
+ .office-scene .station-nameplate small{font-size:clamp(7px,2vw,9px)!important}
+ .office-scene .station-bubble{
+   min-height:15px;padding:2px 4px!important;border-width:1px!important;
+   border-radius:9px!important;font-size:clamp(7px,1.9vw,9px)!important
+ }
+ .office-scene .station-bubble:after{bottom:-6px;left:9px;border-top-width:6px}
+}
+@media(max-width:360px){
+ .office-scene .station-nameplate small{font-size:7px!important}
+ .office-scene .station-nameplate strong{font-size:9px!important}
+ .office-scene .station-bubble{font-size:7px!important;right:2%!important;padding:2px!important}
+}
+@media(max-width:700px) and (max-height:620px){
+ .office-scene .scene-floor{min-height:100%!important}
+ .office-scene .station-nameplate{height:27%!important}
+}
