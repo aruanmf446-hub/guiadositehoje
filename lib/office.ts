@@ -66,7 +66,7 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
   activity='Solicitação na fila aguardando conclusão';
  }
  if(state==='waiting'&&run?.status==='ok'&&recent(run.doneAt||run.time,90,now)){
-  state='recent';activity=run.count>0?'Coleta concluída: '+run.count+' registro(s)':'Coleta concluída, sem registros novos';
+  state='recent';activity=id==='seo'?(run.count>0?'Redação com '+run.count+' palavras registrada no banco':'Etapa de redação concluída'):run.count>0?'Coleta concluída: '+run.count+' registro(s)':'Coleta concluída, sem registros novos';
  }
  if(state==='waiting'&&last?.origin==='github'&&recent(last.time,240,now)){
   state='recent';activity='Alteração de código relacionada a '+(id==='seo'?'SEO':profiles.find(p=>p.id===id)?.job);
@@ -128,16 +128,17 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,schedule,evidence,drafts,activity]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written').order('requested_at',{ascending:false}).limit(20),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count').order('requested_at',{ascending:false}).limit(30),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
+   admin.from('editorial_ai_runs').select('created_at,finished_at,state,word_count').order('created_at',{ascending:false}).limit(20),
    admin.rpc('office_schedule_status'),
    admin.from('editorial_evidence').select('article_id').limit(80),
    admin.from('news_articles').select('id').eq('status','draft').limit(150),
    admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20)
   ]);
-  telemetry=!fixture.error&&!editorial.error&&!writer.error&&!schedule.error;
+  telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
   if(!fixture.error)for(const x of fixture.data||[]){
    runs.push({agentId:'futebol',time:x.requested_at,doneAt:x.processed_at,status:x.status,count:x.items_written||0});
   }
@@ -151,6 +152,13 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
     ['error','failed'].includes(original)?'error':
     ['running','processing','in_progress'].includes(original)?'running':'pending';
    runs.push({agentId:'seo',time:x.created_at,doneAt:x.processed_at,status,count:0});
+  }
+  if(!ai.error)for(const x of ai.data||[]){
+   const original=String(x.state).toLowerCase();
+   const status=['ok','done','completed','success','succeeded'].includes(original)?'ok':
+    ['error','failed'].includes(original)?'error':
+    ['running','processing','in_progress'].includes(original)?'running':'pending';
+   runs.push({agentId:'seo',time:x.created_at,doneAt:x.finished_at,status,count:x.word_count||0});
   }
   if(!schedule.error&&Array.isArray(schedule.data)){
    for(const x of schedule.data as Job[])if(x&&typeof x.jobname==='string')jobs.push(x);
