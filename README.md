@@ -1,43 +1,45 @@
 # Guia de Hoje
 
-Portal Next.js com artigos, futebol, filmes e séries.
+Portal de notícias, jogos e guia de transmissões, desenvolvido em Next.js + Supabase.
 
-## Agente automático de futebol
+## Futebol automático (ativo)
 
-A Edge Function `supabase/functions/atualizar-jogos/index.ts` está implantada no projeto `kffzngznzjgioabtqxju`.
-O Supabase Cron executa a coleta **três vezes por dia**, 06h20, 12h20 e 18h20 (horário de Brasília), usando o agendamento **UTC 09h20, 15h20, 21h20**.
+O coletor de partidas agora funciona **no Supabase PostgreSQL** com `pg_cron` e `pg_net`.
+Ele faz solicitações espaçadas à **TheSportsDB (chave pública gratuita 123)** e grava
+partidas dos **próximos sete dias** em `public.matches` com URLs e SEO próprios.
 
-- Consulta um horizonte de **hoje até os próximos 7 dias**, abrangendo campeonatos brasileiros e internacionais.
-- Importa partidas e horários com fuso explícito de Brasília, atualiza resultados, evita duplicações por `external_ref`.
-- Faz páginas por jogo em `/futebol/[slug]`, com título, descrição, Open Graph, `SportsEvent`, canonical e sitemap dinâmico.
-- Disponibiliza `/futebol` e `/futebol/onde-assistir`, com filtro de transmissões confirmadas.
-- Só atribui emissora brasileira se a fonte indicar inequivocamente região **BR/Brasil**. Caso contrário, mostra **transmissão a confirmar**.
-- Preserva transmissões inseridas com fonte independente. Nunca inventa canal ou cria artigos fictícios.
-- Guarda o estado em `agent_runs` (execuções) e bloqueia chamadas não autorizadas com token aleatório armazenado no Supabase em `agent_configuration`.
+- Cron: `guia-de-hoje-coletor-sql`, execução a cada 5 minutos. Faz uma chamada externa
+  por vez nas janelas 06h–06h55, 12h–12h55, 18h–18h55 (Brasília).
+- Consulta mundial de jogos e recortes do Brasileirão Série A, Premier League e
+  Liga dos Campeões. O limite gratuito da fonte pode omitir partidas; **não garante
+  todos os jogos**.
+- Grade brasileira: só informa canal quando a fonte relaciona o evento a `Brazil`;
+  sem evidência, mostra **transmissão a confirmar**. Dados sujeitos a alterações.
+- Evita duplicatas com `external_ref` e mantém URLs por partida estáveis.
+- URLs: `/futebol`, `/futebol/onde-assistir`, `/futebol/[slug]` e `/sitemap.xml`.
+- Cada artigo de futebol tem meta title, descrição, canonical, Open Graph e
+  dados estruturados `SportsEvent`.
+- Site: revalidação automática de ~5 minutos; sitemap de ~15 minutos.
 
-**Fonte gratuita utilizada:** [TheSportsDB v1](https://www.thesportsdb.com/docs/api), documentada pelo fornecedor, com limite gratuito de **até 3 eventos por campeonato e data** e **1 anúncio de TV por consulta**. O agente consulta o recorte diário e o próximo evento por campeonato; a lista gratuita pode omitir jogos, portanto não há garantia de cobertura completa. Os anúncios para o Brasil são filtrados por país, e a grade pode mudar. A disponibilidade da API e as condições de reutilização devem ser respeitadas.
+**O coletor antigo da Edge Function `atualizar-jogos` foi DESATIVADO do cron.**
+Não o execute em paralelo: ele atingia bloqueios HTTP 403/429.
+O coletor atual é um robô de dados e SEO por regras, **sem IA generativa paga**.
+Veja [o manual operacional completo](docs/AGENTE-FUTEBOL.md).
 
-**Importante:** este é um agente de automação editorial e SEO por regras verificáveis, **sem modelo de IA generativa ativado** e sem consumo de tokens de IA. Um modelo generativo poderá ser acoplado depois, com sua própria chave e limites gratuitos, sem permitir que invente jogos ou transmissões.
+## Conferir se está funcionando
 
-## Consultar execução
-
-Supabase SQL Editor:
+No [SQL Editor do Supabase](https://supabase.com/dashboard/project/kffzngznzjgioabtqxju/sql/new):
 
 ```sql
-select started_at,finished_at,status,games_found,games_written,broadcasts_verified,errors
-from public.agent_runs order by id desc limit 10;
+select game_date,league,home_team,away_team,broadcast
+from public.matches where is_published order by kickoff_at limit 30;
 
-select game_date,league,home_team,away_team,broadcast,broadcast_status,slug
-from public.matches where is_published order by kickoff_at limit 40;
+select request_key,status,http_status,items_written,error_text
+from public.agent_fixture_requests order by id desc limit 20;
 
-select jobid,jobname,schedule,active from cron.job where jobname='guia-de-hoje-futebol-3x';
+select jobname,active,schedule from cron.job
+where jobname='guia-de-hoje-coletor-sql';
 ```
-
-## Dados e publicação
-
-As tabelas `news_articles`, `matches` e `watch_titles` usam RLS. Leitura pública de conteúdos publicados, escrita apenas por processo autorizado. Nunca exponha chaves secretas de banco na Vercel nem no frontend.
-
-A home e as páginas se atualizam sem deploy a cada 5 minutos no Next.js (ISR). Os mecanismos de `sitemap.xml` e `robots.txt` usam como domínio canônico padrão **https://guiadehoje.site**. Confira a configuração real do domínio na Vercel antes de indexar.
 
 ## Desenvolvimento
 
@@ -47,4 +49,10 @@ npm run typecheck
 npm run build
 ```
 
-Mudanças em SQL estão em `supabase/migrations`. As migrações já foram aplicadas no projeto Supabase informado.
+A URL e a chave **publicável** do Supabase podem ser configuradas pelas variáveis
+em `.env.example`. Nunca exponha chaves secretas ou service_role no frontend.
+O domínio canônico configurado é `https://guiadehoje.site`.
+
+Migrations versionadas em `supabase/migrations`. Banco real identificado por
+`kffzngznzjgioabtqxju`. As tabelas públicas usam RLS, sem permissões de escrita
+para visitantes.
