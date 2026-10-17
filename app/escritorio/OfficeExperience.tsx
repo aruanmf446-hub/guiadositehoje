@@ -1,0 +1,208 @@
+'use client';
+
+import {useCallback,useEffect,useState} from 'react';
+import type {CSSProperties} from 'react';
+import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot} from '@/lib/office';
+import {profiles} from '@/lib/office';
+
+type View='escritorio'|'equipe'|'entregas';
+const stateLabels:Record<AgentState,string>={
+ working:'Trabalhando agora',recent:'Atividade recente',waiting:'Aguardando',
+ error:'Precisa de atenção',unconnected:'Sem execução registrada'
+};
+const idLabels:Record<AgentId,string>={
+ futebol:'Futebol',noticias:'Notícias',filmes:'Filmes',series:'Séries',seo:'Redação SEO'
+};
+function clock(iso:string|null){
+ if(!iso)return 'Sem registro';
+ const time=Date.parse(iso);
+ return Number.isFinite(time)?new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(time)):'Sem registro';
+}
+function Sprite({id}:{id:AgentId}){
+ const p=profiles.find(x=>x.id===id)!;
+ return <svg className="office-sprite" viewBox="0 0 82 93" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={'Personagem de '+p.name}>
+  <ellipse cx="41" cy="88" rx="26" ry="5" fill="#2c3446" opacity=".13"/>
+  <path d="M28 65h12v20H27zM44 65h12v20H43z" fill="#3a4969"/>
+  <rect x="25" y="79" width="17" height="8" rx="4" fill="#3b3237"/><rect x="42" y="79" width="17" height="8" rx="4" fill="#3b3237"/>
+  <path d="M25 42h32l8 29H17z" fill={p.color}/>
+  <rect x="13" y="45" width="13" height="23" rx="6" fill={p.skin}/><rect x="56" y="45" width="13" height="23" rx="6" fill={p.skin}/>
+  <rect x="33" y="35" width="16" height="13" rx="4" fill={p.skin}/>
+  <rect x="18" y="10" width="46" height="35" rx="16" fill={p.skin}/>
+  <path d="M17 29V20Q18 4 39 4h11q18 2 17 21l-4 3-4-12-11 1-11-5-11 8-2 9z" fill={p.hair}/>
+  <rect x="26" y="29" width="5" height="5" rx="2" fill="#353345"/><rect x="51" y="29" width="5" height="5" rx="2" fill="#353345"/>
+  <path d="M37 38q5 4 10 0" stroke="#8f5550" strokeWidth="2" fill="none" strokeLinecap="round"/>
+  <path d="M34 46l7 5 7-5" stroke="#fff" strokeWidth="3" fill="none" opacity=".55"/>
+  <rect x="36" y="58" width="10" height="7" rx="3" fill="#fff" opacity=".3"/>
+ </svg>;
+}
+function Status({state}:{state:AgentState}){
+ return <span className={'office-status status-'+state}><span className="office-status-dot"/>{stateLabels[state]}</span>;
+}
+function Station({agent,selected,onSelect}:{agent:OfficeAgent;selected:boolean;onSelect:()=>void}){
+ const p=profiles.find(x=>x.id===agent.id)!;
+ return <button type="button" className={'office-station station-'+agent.id+(selected?' station-selected':'')}
+  onClick={onSelect} aria-pressed={selected} aria-label={'Selecionar '+p.name+', '+stateLabels[agent.state]}
+  style={{'--agent-accent':p.color} as CSSProperties}>
+  <span className="station-bubble">{agent.state==='working'?'Em ação!':agent.state==='recent'?'Entreguei!':agent.state==='error'?'Ops!':'Na minha mesa'}</span>
+  <span className="station-desk">
+   <span className="station-monitor"><span className="station-screen"><i/><i/><i/><b/></span></span>
+   <span className="station-keyboard"/>
+   <span className="station-cup"/>
+  </span>
+  <span className="station-chair"/>
+  <span className="station-sprite"><Sprite id={agent.id}/></span>
+  <span className="station-nameplate"><strong>{p.name}</strong><small>{p.job}</small></span>
+ </button>;
+}
+function Deliveries({items,emptyLabel}:{items:Delivery[];emptyLabel:string}){
+ return <div className="office-delivery-list">
+ {items.length===0?<div className="office-empty"><span>✳</span><strong>Nenhuma entrega por aqui.</strong><p>{emptyLabel}</p></div>:
+ items.map(item=><a className="office-delivery" key={item.id} href={item.href} target="_blank" rel="noreferrer">
+  <span className={'delivery-icon delivery-'+item.agentId}>{item.agentId==='futebol'?'⚽':item.agentId==='noticias'?'✎':item.agentId==='filmes'?'◩':'▷'}</span>
+  <span className="delivery-copy"><strong>{item.title}</strong><small>{idLabels[item.agentId]} · {clock(item.time)}</small></span>
+  <span className="delivery-arrow" aria-hidden="true">↗</span>
+ </a>)}
+ </div>;
+}
+export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
+ const [snapshot,setSnapshot]=useState(initial);
+ const [selected,setSelected]=useState<AgentId>('futebol');
+ const [view,setView]=useState<View>('escritorio');
+ const [filter,setFilter]=useState<AgentId|'todos'>('todos');
+ const [loading,setLoading]=useState(false);
+ const [refreshError,setRefreshError]=useState('');
+ const refresh=useCallback(async()=>{
+  try {
+   const response=await fetch('/api/escritorio/status',{cache:'no-store'});
+   if(!response.ok)throw new Error('Falha de conexão');
+   const data=await response.json() as OfficeSnapshot;
+   setSnapshot(data);setRefreshError('');
+  } catch {setRefreshError('Não foi possível atualizar agora. Os últimos dados foram mantidos.');}
+ },[]);
+ useEffect(()=>{
+  const timer=window.setInterval(()=>{void refresh();},45000);
+  return ()=>window.clearInterval(timer);
+ },[refresh]);
+ const selectedAgent=snapshot.agents.find(a=>a.id===selected)||snapshot.agents[0];
+ const selectedProfile=profiles.find(p=>p.id===selectedAgent.id)!;
+ const displayed=filter==='todos'?snapshot.deliveries:snapshot.deliveries.filter(x=>x.agentId===filter);
+ const recentDeliveries=selectedAgent.deliveries.slice(0,5);
+ async function refreshNow(){setLoading(true);await refresh();setLoading(false);}
+ const working=snapshot.agents.filter(a=>a.state==='working').length;
+ return <div className="office-shell">
+  <aside className="office-side">
+   <a className="office-logo" href="/escritorio" onClick={e=>{e.preventDefault();setView('escritorio');}}>
+    <span className="office-logo-mark">G<span>✳</span></span>
+    <span><strong>guia de hoje</strong><small>STUDIO DOS AGENTES</small></span>
+   </a>
+   <div className="office-nav-overline">ESPAÇO DE TRABALHO</div>
+   <nav className="office-menu" aria-label="Áreas do escritório">
+    {([['escritorio','⌂','Escritório'],['equipe','♧','Meu time'],['entregas','▤','Entregas']] as const).map(([key,ico,label])=>
+     <button key={key} type="button" className={view===key?'nav-current':''} onClick={()=>setView(key)}>
+      <span>{ico}</span>{label}{view===key&&<i aria-hidden="true"/>}
+     </button>)}
+   </nav>
+   <div className="office-side-team">
+    <div className="office-nav-overline">SUA EQUIPE</div>
+    {profiles.map(p=>{
+     const a=snapshot.agents.find(x=>x.id===p.id)!;
+     return <button key={p.id} type="button" className={'side-member'+(selected===p.id&&view==='escritorio'?' side-member-active':'')}
+       onClick={()=>{setSelected(p.id);setView('escritorio');}}>
+       <span className="side-member-dot" style={{background:p.color}}>{p.name.slice(0,1)}</span>
+       <span>{p.name}<small>{p.job}</small></span>
+       <i className={'member-light light-'+a.state}/>
+      </button>;
+    })}
+   </div>
+   <div className="office-side-bottom"><span className="side-sparkle">✦</span><strong>Pequenas tarefas.<br/>Grandes entregas.</strong>
+    <p>Uma janela para a rotina dos seus agentes.</p></div>
+   <a href="/" className="office-back">← Voltar ao Guia de Hoje</a>
+  </aside>
+
+  <div className="office-main">
+   <header className="office-topbar">
+    <div className="office-breadcrumb">WORKSPACE <span>/</span> <strong>{view==='escritorio'?'Escritório':view==='equipe'?'Meu time':'Entregas'}</strong></div>
+    <div className="office-top-actions">
+     <span className="office-observed"><span className="observed-dot"/>{working>0?working+' em execução':'Acompanhando automações'}</span>
+     <button type="button" className="office-refresh" onClick={()=>{void refreshNow();}} disabled={loading} title="Atualizar dados">
+      <span aria-hidden="true" className={loading?'spin':' '}>↻</span> Atualizar
+     </button>
+     <span className="office-avatar">G</span>
+    </div>
+   </header>
+   <div className="office-content">
+    <div className="office-heading">
+     <div><p className="office-eyebrow"><span>✳</span> CENTRAL DE OBSERVAÇÃO</p>
+     <h1>{view==='escritorio'?'Bem-vindo ao escritório.':view==='equipe'?'Conheça a equipe.':'O que já saiu daqui.'}<span className="title-sparkle">✦</span></h1>
+     <p className="office-subtitle">{view==='escritorio'?'Um cantinho para acompanhar quem faz a mágica acontecer — com dados de verdade.':
+      view==='equipe'?'Cada agente tem uma especialidade, uma mesa e uma história de entregas.':
+      'Os últimos registros publicados pelos coletores, organizados para você explorar.'}</p></div>
+     <div className="office-check"><span className="check-icon">◷</span><span>ÚLTIMA CONSULTA<strong>{clock(snapshot.checkedAt)}</strong></span></div>
+    </div>
+    {refreshError&&<div className="office-alert" role="status">{refreshError}</div>}
+    {snapshot.notice&&<div className="office-alert" role="status">{snapshot.notice}</div>}
+    {view==='escritorio'&&<div className="office-dashboard">
+     <section className="office-scene-wrap" aria-label="Escritório gamificado interativo">
+      <div className="scene-title"><div><span className="scene-dot"/> <strong>O escritório</strong><small>SELECIONE UM PERSONAGEM PARA VER O TRABALHO</small></div><span className="scene-floor-label">ANDAR 01 ↗</span></div>
+      <div className="office-scene">
+       <div className="scene-wall">
+        <span className="scene-sign">GUIA <b>✳</b> HOJE</span>
+        <div className="scene-windows"><div/><div/><div/></div>
+        <span className="scene-clock">◷</span>
+       </div>
+       <div className="scene-floor">
+        <div className="scene-rug"/><div className="scene-cabinet"><i/><i/><i/></div>
+        <div className="scene-plant plant-a"><span/><i/></div>
+        <div className="scene-plant plant-b"><span/><i/></div>
+        <div className="scene-water">▥<small>água</small></div>
+        <div className="scene-stations">
+         {snapshot.agents.map(agent=><Station key={agent.id} agent={agent} selected={selected===agent.id} onSelect={()=>setSelected(agent.id)}/>)}
+        </div>
+       </div>
+      </div>
+      <div className="scene-foot"><span><span className="legend-working"/> Executando, se confirmado pelo banco</span><span>✦ Animação ilustrativa</span></div>
+     </section>
+
+     <aside className="office-inspector">
+      <div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small></div>
+      <div className="inspector-person" style={{'--agent-accent':selectedProfile.color} as CSSProperties}>
+       <div className="inspector-portrait"><Sprite id={selectedAgent.id}/></div>
+       <div><div className="inspector-hello">Olá, eu sou</div><h2>{selectedProfile.name}<span>.</span></h2><p>{selectedProfile.job}</p></div>
+      </div>
+      <Status state={selectedAgent.state}/>
+      <div className="inspector-divider"/>
+      <span className="inspector-caption">MINHA MISSÃO</span>
+      <p className="inspector-mission">{selectedProfile.mission}</p>
+      <span className="inspector-caption">O QUE ACONTECE AGORA</span>
+      <p className="inspector-activity">{selectedAgent.activity}</p>
+      <div className="inspector-when">◷ Último registro <strong>{clock(selectedAgent.lastSeen)}</strong></div>
+      <div className="inspector-divider"/>
+      <div className="inspector-recent-title"><strong>Meus últimos trabalhos</strong><span>{recentDeliveries.length} recentes</span></div>
+      <Deliveries items={recentDeliveries} emptyLabel="Ainda não há entrega publicada para este agente."/>
+      {!selectedAgent.verifiedRun&&<p className="inspector-note">Status de execução não confirmado. A atividade exibida foi inferida a partir das publicações.</p>}
+     </aside>
+    </div>}
+
+    {view==='equipe'&&<div className="office-team-grid">
+     {snapshot.agents.map(agent=>{
+      const p=profiles.find(x=>x.id===agent.id)!;
+      return <button className="team-card" type="button" key={agent.id} onClick={()=>{setSelected(agent.id);setView('escritorio');}}
+        style={{'--agent-accent':p.color} as CSSProperties}>
+       <span className="team-card-art"><Sprite id={agent.id}/></span>
+       <span className="team-card-content"><small>MESA {p.desk} / AGENTE</small><strong>{p.name}</strong><span>{p.job}</span><Status state={agent.state}/><em>Ver estação ↗</em></span>
+      </button>;
+     })}
+    </div>}
+    {view==='entregas'&&<div className="office-history">
+     <div className="history-head"><div><strong>Arquivo de entregas</strong><p>Registros publicados, com acesso ao conteúdo original no portal.</p></div><span>ÚLTIMOS REGISTROS</span></div>
+     <div className="history-filters">
+      <button type="button" onClick={()=>setFilter('todos')} className={filter==='todos'?'filter-active':''}>Todos</button>
+      {profiles.filter(p=>p.id!=='seo').map(p=><button type="button" key={p.id} onClick={()=>setFilter(p.id)} className={filter===p.id?'filter-active':''}>{idLabels[p.id]}</button>)}
+     </div>
+     <Deliveries items={displayed} emptyLabel="Nenhum registro publicado nesta categoria."/>
+    </div>}
+    <footer className="office-footer"><span>✳ Feito com cuidado para o Guia de Hoje</span><span>{snapshot.telemetry?'Execuções verificadas no banco':'Exibindo publicações; telemetria interna não conectada'} · Atualização a cada 45s</span></footer>
+   </div>
+  </div>
+ </div>;
+}
