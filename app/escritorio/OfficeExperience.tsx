@@ -71,6 +71,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const [filter,setFilter]=useState<AgentId|'todos'>('todos');
  const [loading,setLoading]=useState(false);
  const [refreshError,setRefreshError]=useState('');
+ const [detailsOpen,setDetailsOpen]=useState(false);
  const refresh=useCallback(async()=>{
   try {
    const response=await fetch('/api/escritorio/status',{cache:'no-store'});
@@ -83,6 +84,12 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
   const timer=window.setInterval(()=>{void refresh();},45000);
   return ()=>window.clearInterval(timer);
  },[refresh]);
+ useEffect(()=>{
+  if(!detailsOpen)return;
+  const dismiss=(event:KeyboardEvent)=>{if(event.key==='Escape')setDetailsOpen(false);};
+  window.addEventListener('keydown',dismiss);
+  return ()=>window.removeEventListener('keydown',dismiss);
+ },[detailsOpen]);
  const selectedAgent=snapshot.agents.find(a=>a.id===selected)||snapshot.agents[0];
  const selectedProfile=profiles.find(p=>p.id===selectedAgent.id)!;
  const displayed=filter==='todos'?snapshot.deliveries:snapshot.deliveries.filter(x=>x.agentId===filter);
@@ -98,7 +105,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
    <div className="office-nav-overline">ESPAÇO DE TRABALHO</div>
    <nav className="office-menu" aria-label="Áreas do escritório">
     {([['escritorio','⌂','Escritório'],['equipe','♧','Meu time'],['entregas','▤','Entregas']] as const).map(([key,ico,label])=>
-     <button key={key} type="button" className={view===key?'nav-current':''} onClick={()=>setView(key)}>
+     <button key={key} type="button" className={view===key?'nav-current':''} aria-label={label} title={label} aria-current={view===key?'page':undefined} onClick={()=>{setView(key);setDetailsOpen(false);}}>
       <span>{ico}</span>{label}{view===key&&<i aria-hidden="true"/>}
      </button>)}
    </nav>
@@ -107,7 +114,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {profiles.map(p=>{
      const a=snapshot.agents.find(x=>x.id===p.id)!;
      return <button key={p.id} type="button" className={'side-member'+(selected===p.id&&view==='escritorio'?' side-member-active':'')}
-       onClick={()=>{setSelected(p.id);setView('escritorio');}}>
+       onClick={()=>{setSelected(p.id);setView('escritorio');setDetailsOpen(true);}}>
        <span className="side-member-dot" style={{background:p.color}}>{p.name.slice(0,1)}</span>
        <span>{p.name}<small>{p.job}</small></span>
        <i className={'member-light light-'+a.state}/>
@@ -133,7 +140,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
    <div className="office-content">
     <div className="office-heading">
      <div><p className="office-eyebrow"><span>✳</span> CENTRAL DE OBSERVAÇÃO</p>
-     <h1>{view==='escritorio'?'Bem-vindo ao escritório.':view==='equipe'?'Conheça a equipe.':'O que já saiu daqui.'}<span className="title-sparkle">✦</span></h1>
+     <h1><span className="office-title-desktop">{view==='escritorio'?'Bem-vindo ao escritório.':view==='equipe'?'Conheça a equipe.':'O que já saiu daqui.'}</span><span className="office-title-mobile">{view==='escritorio'?'Escritório':view==='equipe'?'Meu time':'Entregas'}</span><span className="title-sparkle">✦</span></h1>
      <p className="office-subtitle">{view==='escritorio'?'Seu time, as últimas entregas e a próxima execução — tudo ligado ao GitHub e ao Supabase.':
       view==='equipe'?'Cada agente tem uma especialidade, uma mesa e uma história de entregas.':
       'Os últimos registros publicados pelos coletores, organizados para você explorar.'}</p></div>
@@ -144,6 +151,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {view==='escritorio'&&<div className="office-dashboard">
      <section className="office-scene-wrap" aria-label="Escritório gamificado interativo">
       <div className="scene-title"><div><span className="scene-dot"/> <strong>O escritório</strong><small>SELECIONE UM PERSONAGEM PARA VER O TRABALHO</small></div><span className="scene-floor-label">ANDAR 01 ↗</span></div>
+      <p className="office-mobile-hint">Toque em um agente para ver suas tarefas <span aria-hidden="true">↗</span></p>
       <div className="office-scene">
        <div className="scene-wall">
         <span className="scene-sign">GUIA <b>✳</b> HOJE</span>
@@ -156,15 +164,16 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
         <div className="scene-plant plant-b"><span/><i/></div>
         <div className="scene-water">▥<small>água</small></div>
         <div className="scene-stations">
-         {snapshot.agents.map(agent=><Station key={agent.id} agent={agent} selected={selected===agent.id} onSelect={()=>setSelected(agent.id)}/>)}
+         {snapshot.agents.map(agent=><Station key={agent.id} agent={agent} selected={selected===agent.id} onSelect={()=>{setSelected(agent.id);setDetailsOpen(true);}}/>)}
         </div>
        </div>
       </div>
       <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Atualização automática a cada 45 segundos</span></div>
      </section>
 
-     <aside className="office-inspector">
-      <div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small></div>
+     <button type="button" className={'office-sheet-backdrop'+(detailsOpen?' sheet-active':'')} onClick={()=>setDetailsOpen(false)} aria-label="Fechar detalhes do agente" tabIndex={detailsOpen?0:-1}/>
+     <aside className={'office-inspector'+(detailsOpen?' sheet-open':'')} aria-label={'Detalhes de '+selectedProfile.name}>
+      <div className="office-sheet-handle" aria-hidden="true"/><div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small><button type="button" className="office-sheet-close" onClick={()=>setDetailsOpen(false)} aria-label="Fechar ficha do agente">×</button></div>
       <div className="inspector-person" style={{'--agent-accent':selectedProfile.color} as CSSProperties}>
        <div className="inspector-portrait"><Sprite id={selectedAgent.id}/></div>
        <div><div className="inspector-hello">Olá, eu sou</div><h2>{selectedProfile.name}<span>.</span></h2><p>{selectedProfile.job}</p></div>
@@ -191,7 +200,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {view==='equipe'&&<div className="office-team-grid">
      {snapshot.agents.map(agent=>{
       const p=profiles.find(x=>x.id===agent.id)!;
-      return <button className="team-card" type="button" key={agent.id} onClick={()=>{setSelected(agent.id);setView('escritorio');}}
+      return <button className="team-card" type="button" key={agent.id} onClick={()=>{setSelected(agent.id);setView('escritorio');setDetailsOpen(true);}}
         style={{'--agent-accent':p.color} as CSSProperties}>
        <span className="team-card-art"><Sprite id={agent.id}/></span>
        <span className="team-card-content"><small>MESA {p.desk} / AGENTE</small><strong>{p.name}</strong><span>{p.job}</span><Status state={agent.state}/><em>Ver estação ↗</em></span>
