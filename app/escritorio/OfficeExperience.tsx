@@ -11,7 +11,7 @@ const stateLabels:Record<AgentState,string>={
  error:'Precisa de atenção',unconnected:'Sem execução registrada'
 };
 const idLabels:Record<AgentId,string>={
- futebol:'Futebol',noticias:'Notícias',filmes:'Filmes',series:'Séries',seo:'Redação SEO'
+ futebol:'Futebol',noticias:'Notícias',filmes:'Filmes',series:'Séries',seo:'Redação SEO',design:'Design'
 };
 function clock(iso:string|null){
  if(!iso)return 'Sem registro';
