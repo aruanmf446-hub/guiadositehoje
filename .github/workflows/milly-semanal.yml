@@ -1,0 +1,40 @@
+name: Milly — revisão visual semanal
+on:
+  schedule:
+    - cron: '20 13 * * 1' # Segunda-feira, 10h20 de Brasília (UTC-3)
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/milly-semanal.yml'
+      - 'scripts/weekly-milly-audit.cjs'
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: milly-design-audit
+  cancel-in-progress: false
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Instalar Chromium para capturas verdadeiras
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Milly — analisar páginas públicas e entregar relatório
+        run: node scripts/weekly-milly-audit.cjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milly-capturas-e-metricas
+          path: artifacts/milly-weekly/
+          if-no-files-found: ignore

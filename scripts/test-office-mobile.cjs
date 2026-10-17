@@ -30,7 +30,7 @@ function check(ok,detail){assert.ok(ok,detail);}
     check(navigation&&navigation.status()===200,label+': route HTTP '+navigation?.status());
     await page.locator('.office-station').first().waitFor({state:'visible'});
     await page.locator('.office-shell[data-interactive="true"]').waitFor({state:'attached',timeout:20000});
-    check(await page.locator('.office-station').count()===5,label+': five agents missing');
+    check(await page.locator('.office-station').count()===6,label+': five agents missing');
     const initial=await page.evaluate(()=>{
      const scene=document.querySelector('.office-scene');
      const buttons=[...document.querySelectorAll('.office-station')];
@@ -61,7 +61,7 @@ function check(ok,detail){assert.ok(ok,detail);}
       check(ix*iy<10,label+': station overlap '+i+' '+j+' '+ix+'x'+iy);
      }
     }
-    for(const name of ['Bento','Nina','Theo','Luna','Otto']){
+    for(const name of ['Bento','Nina','Theo','Luna','Otto','Milly']){
      const station=page.getByRole('button',{name:new RegExp('Selecionar '+name)});
      await station.scrollIntoViewIfNeeded();
      if(size.width<=700)await station.tap();else await station.click();
@@ -81,18 +81,18 @@ function check(ok,detail){assert.ok(ok,detail);}
     }
     await page.screenshot({path:'artifacts/office-mobile/office-'+label+'.png',fullPage:true});
     await page.getByRole('button',{name:'Meu time'}).click();
-    check(await page.locator('.team-card').count()===5,label+': team count');
+    check(await page.locator('.team-card').count()===6,label+': team count');
     await page.getByRole('button',{name:'Entregas'}).click();
     await page.locator('.office-history').waitFor({state:'visible'});
     await page.getByRole('button',{name:'Escritório'}).click();
-    check(await page.locator('.office-station').count()===5,label+': return to scene');
+    check(await page.locator('.office-station').count()===6,label+': return to scene');
     if(size.width<=700){
       await page.locator('.office-station').first().tap();
       await page.keyboard.press('Escape');
       check(await page.getByRole('dialog').count()===0,label+': escape did not dismiss');
     }
     check(errors.length===0,label+': browser errors '+errors.join(' / '));
-    console.log('PASS '+label+': no overflow; five desks; five sheets; tabs; accessible dismissal');
+    console.log('PASS '+label+': no overflow; six desks; six sheets; tabs; accessible dismissal');
    }catch(e){failures.push(label+': '+String(e));console.error('FAIL '+label+': '+(e&&e.stack||String(e)));}
    finally{await context.close();}
   }

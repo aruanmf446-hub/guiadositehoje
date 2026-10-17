@@ -19,6 +19,34 @@ function clock(iso:string|null){
  return Number.isFinite(time)?new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(time)):'Sem registro';
 }
 function Sprite({id}:{id:AgentId}){
+ if(id==='design')return <svg className="office-sprite office-milly-sprite" viewBox="0 0 82 93"
+  xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Milly, negra de cabelo cacheado, blusa rosa e gata branca">
+  <ellipse cx="41" cy="89" rx="27" ry="4" fill="#211927" opacity=".2"/>
+  <path d="M25 63h14v24H24zm19 0h14v24H43z" fill="#50465a"/>
+  <rect x="22" y="81" width="19" height="7" rx="3" fill="#392c3b"/>
+  <rect x="43" y="81" width="19" height="7" rx="3" fill="#392c3b"/>
+  <path d="M24 44h34l8 31H16z" fill="#f78cbb"/>
+  <rect x="10" y="47" width="13" height="22" rx="6" fill="#814936"/>
+  <rect x="59" y="47" width="13" height="22" rx="6" fill="#814936"/>
+  <rect x="34" y="37" width="15" height="13" rx="4" fill="#814936"/>
+  <rect x="20" y="12" width="42" height="36" rx="17" fill="#814936"/>
+  <g fill="#211927">
+   <circle cx="19" cy="23" r="11"/><circle cx="21" cy="12" r="10"/>
+   <circle cx="30" cy="8" r="11"/><circle cx="41" cy="6" r="11"/>
+   <circle cx="52" cy="8" r="11"/><circle cx="62" cy="15" r="10"/>
+   <circle cx="64" cy="26" r="11"/><circle cx="26" cy="18" r="9"/>
+   <circle cx="52" cy="16" r="8"/>
+  </g>
+  <path d="M24 29q4-12 7-11 5 5 11 2 7-3 14 1v9" fill="#211927"/>
+  <circle cx="32" cy="33" r="2.6" fill="#2b1c26"/>
+  <circle cx="50" cy="33" r="2.6" fill="#2b1c26"/>
+  <path d="M37 40q5 4 10 0" stroke="#4e2430" strokeWidth="2" strokeLinecap="round" fill="none"/>
+  <path d="M34 57l-2-5 5 1 4-2 4 2 5-1-2 6q-7 4-14-1z" fill="#fff" stroke="#f2dde9" strokeWidth="1"/>
+  <circle cx="37" cy="55" r="1" fill="#322c35"/><circle cx="45" cy="55" r="1" fill="#322c35"/>
+  <path d="M40 58h2" stroke="#ee92b3" strokeWidth="2" strokeLinecap="round"/>
+  <path d="M34 57h-4m16 0h4" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
+  <circle cx="47" cy="50" r="3" fill="#f35e9c"/><circle cx="44" cy="49" r="2" fill="#f35e9c"/>
+ </svg>;
  const p=profiles.find(x=>x.id===id)!;
  return <svg className="office-sprite" viewBox="0 0 82 93" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={'Personagem de '+p.name}>
   <ellipse cx="41" cy="88" rx="26" ry="5" fill="#2c3446" opacity=".13"/>
@@ -66,7 +94,7 @@ function Deliveries({items,emptyLabel}:{items:Delivery[];emptyLabel:string}){
 }
 export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
  const [snapshot,setSnapshot]=useState(initial);
- const [selected,setSelected]=useState<AgentId>('seo');
+ const [selected,setSelected]=useState<AgentId>('design');
  const [view,setView]=useState<View>('escritorio');
  const [filter,setFilter]=useState<AgentId|'todos'>('todos');
  const [loading,setLoading]=useState(false);
@@ -86,12 +114,6 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
    setSnapshot(data);setRefreshError('');
   } catch {setRefreshError('Não foi possível atualizar agora. Os últimos dados foram mantidos.');}
  },[]);
- useEffect(()=>{
-  const timer=window.setInterval(()=>{if(!document.hidden)void refresh();},600000);
-  const onVisible=()=>{if(document.visibilityState==='visible')void refresh();};
-  document.addEventListener('visibilitychange',onVisible);
-  return ()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
- },[refresh]);
  useEffect(()=>{
   const media=window.matchMedia('(max-width: 700px)');
   const update=()=>setMobileSheet(media.matches);
@@ -178,7 +200,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     <div className="office-top-actions">
      <span className="office-observed"><span className="observed-dot"/>{working>0?working+' execução(ões) confirmada(s)':'Agentes monitorados'}</span><a className="office-github-chip" href="https://github.com/aruanmf446-hub/guiadositehoje/actions" target="_blank" rel="noreferrer"><span>⌘</span> {snapshot.github.connected?snapshot.github.activeChecks.length?snapshot.github.activeChecks.length+' verificação(ões) no GitHub':'GitHub conectado':'GitHub indisponível'} ↗</a>
      <button type="button" className="office-refresh" onClick={()=>{void refreshNow();}} disabled={loading} title="Atualizar dados">
-      <span aria-hidden="true" className={loading?'spin':' '}>↻</span> Atualizar
+      <span aria-hidden="true" className={loading?'spin':' '}>↻</span> {loading?'Consultando…':'Atualizar agora'}
      </button>
      <span className="office-avatar">G</span>
     </div>
@@ -196,7 +218,7 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
     {snapshot.notice&&<div className="office-alert" role="status">{snapshot.notice}</div>}
     {view==='escritorio'&&<div className="office-dashboard">
      <section className="office-scene-wrap" aria-label="Escritório gamificado interativo">
-      <div className="scene-title"><div><span className="scene-dot"/> <strong>O escritório</strong><small>SELECIONE UM PERSONAGEM PARA VER O TRABALHO</small></div><span className="scene-floor-label">ANDAR 01 ↗</span></div>
+      <div className="scene-title"><div><span className="scene-dot"/> <strong>O escritório</strong><small>TOQUE EM UM PERSONAGEM PARA VER O TRABALHO REAL</small></div><span className="scene-floor-label">ANDAR 01 ↗</span></div>
       <p className="office-mobile-hint">Toque em um agente para ver suas tarefas <span aria-hidden="true">↗</span></p>
       <div className="office-scene">
        <div className="scene-wall">
@@ -214,14 +236,15 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
         </div>
        </div>
       </div>
-      <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><span>↻ Consulta a cada 10 min · tarefas registradas no Supabase</span></div>
+      <div className="scene-foot"><span><span className="legend-working"/> Só exibe execução com evidência</span><button type="button" className="office-refresh-scene" onClick={()=>{void refreshNow();}}
+       disabled={loading}>{loading?'Consultando…':'↻ Verificar agora'}</button></div>
      </section>
 
      <button type="button" className={'office-sheet-backdrop'+(detailsOpen?' sheet-active':'')} onClick={closeDetails} aria-label="Fechar detalhes do agente" tabIndex={detailsOpen?0:-1}/>
      <aside ref={sheetRef} className={'office-inspector'+(detailsOpen?' sheet-open':'')}
       role={mobileSheet&&detailsOpen?'dialog':undefined} aria-modal={mobileSheet&&detailsOpen?true:undefined}
       aria-labelledby="office-agent-title" aria-label={mobileSheet&&detailsOpen?undefined:'Detalhes de '+selectedProfile.name}>
-      <div className="office-sheet-handle" aria-hidden="true"/><div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 05</small><button ref={closeButtonRef} type="button" className="office-sheet-close" onClick={closeDetails} aria-label="Fechar ficha do agente">×</button></div>
+      <div className="office-sheet-handle" aria-hidden="true"/><div className="inspector-heading"><span>✦</span> FICHA DO AGENTE <small>0{profiles.findIndex(p=>p.id===selected)+1} / 0{profiles.length}</small><button ref={closeButtonRef} type="button" className="office-sheet-close" onClick={closeDetails} aria-label="Fechar ficha do agente">×</button></div>
       <div className="inspector-person" style={{'--agent-accent':selectedProfile.color} as CSSProperties}>
        <div className="inspector-portrait"><Sprite id={selectedAgent.id}/></div>
        <div><div className="inspector-hello">Olá, eu sou</div><h2 id="office-agent-title">{selectedProfile.name}<span>.</span></h2><p>{selectedProfile.job}</p></div>
@@ -249,6 +272,11 @@ export default function OfficeExperience({initial}:{initial:OfficeSnapshot}){
        </ol>
        <p className="office-mission-note">As etapas só são concluídas quando há registros reais. O período entre execuções não significa IA processando continuamente.</p>
       </section>
+      {selectedAgent.id==='design'&&selectedAgent.mission.auditReport&&
+       <section className="office-audit-report"><strong>Relatório visual da Milly</strong>
+        <pre>{selectedAgent.mission.auditReport}</pre>
+        {selectedAgent.mission.auditUrl&&<a href={selectedAgent.mission.auditUrl} target="_blank" rel="noopener noreferrer">
+         Capturas e execução verificável no GitHub ↗</a>}</section>}
       <div className="office-task-summary">
        <div><small>ÚLTIMO TRABALHO · {selectedAgent.lastOrigin}</small>
          <strong>{selectedAgent.deliveries[0]?.title||selectedAgent.activity}</strong>

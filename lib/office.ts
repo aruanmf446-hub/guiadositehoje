@@ -10,6 +10,7 @@ type MatchRow={id:string;home_team:string;away_team:string;league:string;updated
 type WatchRow={id:string;title:string;kind:string;platform:string;updated_at:string};
 type Run={agentId:AgentId;time:string;doneAt:string|null;status:string;count:number;kind?:string;subject?:string;error?:string|null};
 type Job={jobname:string;schedule:string;active:boolean;last_run:string|null;last_status:string|null};
+type DesignAudit={run_id:number;status:string;started_at:string;finished_at:string|null;report:string|null;artifact_url:string|null;error_message:string|null;observations:unknown};
 type Heartbeat={agent_id:string;status:'working'|'waiting'|'completed'|'error';task:string;next_task:string|null;updated_at:string;expires_at:string|null;evidence_url:string|null};
 
 const recent=(time:string|null|undefined,minutes:number,now:number)=>
@@ -18,12 +19,12 @@ const newer=(a:string|null,b:string|null)=>!a?b:!b?a:Date.parse(a)>=Date.parse(b
 const jobName:Record<AgentId,string>={
  futebol:'guia-de-hoje-coletor-sql',noticias:'guia-de-hoje-editorial',
  filmes:'guia-de-hoje-editorial',series:'guia-de-hoje-editorial',
- seo:'guia-de-hoje-redator-seo'
+ seo:'guia-de-hoje-redator-seo',design:'milly-semanal'
 };
 const taskName:Record<AgentId,string>={
  futebol:'Próxima checagem do coletor',noticias:'Próxima checagem editorial',
  filmes:'Próxima checagem editorial',series:'Próxima checagem editorial',
- seo:'Próxima tentativa do redator SEO'
+ seo:'Próxima tentativa do redator SEO',design:'Próxima auditoria visual semanal'
 };
 function cronMatches(token:string,n:number){
  if(token==='*')return true;
@@ -35,7 +36,7 @@ function nextCron(schedule:string,now:number):string|null{
  if(parts.length!==5)return null;
  // pg_cron do projeto usa UTC; localizar a próxima ocorrência a partir do horário real.
  const origin=Math.floor(now/60000)*60000+60000;
- for(let minutes=0;minutes<=2880;minutes++){
+ for(let minutes=0;minutes<=10080;minutes++){
   const d=new Date(origin+minutes*60000);
   if(cronMatches(parts[0],d.getUTCMinutes())&&cronMatches(parts[1],d.getUTCHours())&&
     cronMatches(parts[2],d.getUTCDate())&&cronMatches(parts[3],d.getUTCMonth()+1)&&
@@ -48,7 +49,8 @@ const focusFor:Record<AgentId,string>={
  noticias:'Recolher manchetes e preparar pautas a partir das fontes identificadas',
  filmes:'Pesquisar fichas de filmes e organizar referências para o catálogo',
  series:'Conferir a programação de séries e atualizar informações disponíveis',
- seo:'Selecionar pautas, gerar matéria com IA e validar texto antes da publicação'
+ seo:'Selecionar pautas, gerar matéria com IA e validar texto antes da publicação',
+ design:'Revisar capturas reais do site e sugerir melhorias de UX/UI'
 };
 function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:number,jobs:Job[]):OfficeMission{
  const sorted=[...runs].sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
@@ -75,7 +77,7 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
  const processNote=processAt?
    'Próxima etapa marcada para '+label(processAt)+' (Brasília)':
    'Aguardando processamento registrado';
- const title=id==='futebol'?'Rodada de atualização do futebol':
+ const title=id==='design'?'Revisão visual semanal da Milly':id==='futebol'?'Rodada de atualização do futebol':
   id==='noticias'?'Rodada de pesquisa editorial':id==='filmes'?'Pesquisa de filmes':
   id==='series'?'Pesquisa de séries':'Produção editorial com IA';
  const workDescription=active?(id==='seo'?'Texto em processamento pelo redator':
@@ -113,8 +115,9 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
  const last=items[0]||null;
  let lastSeen=newer(run?.doneAt||run?.time||null,last?.time||null);
  const job=jobs.find(x=>x.jobname===jobName[id]);
- const nextAt=job?.active?nextCron(job.schedule,now):null;
+ const nextAt=id==='design'?nextCron('20 13 * * 1',now):job?.active?nextCron(job.schedule,now):null;
  const nextAction=!telemetry?'Aguardando conexão da telemetria':
+  id==='design'?'Auditar visual do site e registrar relatório':
   !job?'Agendamento não encontrado':
   !job.active?'Agendamento desativado':taskName[id];
  let state:AgentState='waiting',activity='Aguardando próxima tarefa';
@@ -195,7 +198,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   .filter(x=>x.time&&!Number.isNaN(Date.parse(x.time)))
   .sort((a,b)=>Date.parse(b.time)-Date.parse(a.time)).slice(0,90);
 
- const runs:Run[]=[],jobs:Job[]=[];
+ const runs:Run[]=[],jobs:Job[]=[],designAudits:DesignAudit[]=[];
  let telemetry=false,queue=0;
  const heartbeats:Heartbeat[]=[];
  // A telemetria privilegiada é habilitada apenas atrás da autenticação do escritório.
@@ -203,7 +206,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written,query_date,league_id,error_text').order('requested_at',{ascending:false}).limit(80),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count,error_message').order('requested_at',{ascending:false}).limit(35),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
@@ -211,7 +214,8 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    admin.rpc('office_schedule_status'),
    admin.from('editorial_evidence').select('article_id').limit(80),
    admin.from('news_articles').select('id,headline').eq('status','draft').limit(150),
-   admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20)
+   admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20),
+   admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
   if(!fixture.error)for(const x of fixture.data||[]){
@@ -247,13 +251,43 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    for(const x of schedule.data as Job[])if(x&&typeof x.jobname==='string')jobs.push(x);
   }
   if(!activity.error)for(const row of (activity.data||[]) as Heartbeat[])heartbeats.push(row);
+  if(!design.error)for(const audit of (design.data||[]) as DesignAudit[]){
+   designAudits.push(audit);
+   const status=audit.status==='completed'?'ok':audit.status==='error'?'error':
+    audit.status==='capturing'||audit.status==='analyzing'?'running':'pending';
+   runs.push({agentId:'design',time:audit.started_at,doneAt:audit.finished_at,status,
+    count:Array.isArray(audit.observations)?audit.observations.length:0,
+    subject:audit.status==='capturing'?'Capturar telas e medir layout':
+     audit.status==='analyzing'?'Analisar capturas com IA':'Revisão visual semanal',
+    error:audit.error_message});
+   if(audit.status==='completed'&&audit.artifact_url)deliveries.push({
+    id:'milly-'+audit.run_id,agentId:'design',title:'Relatório visual semanal da Milly',
+    detail:(audit.report||'Auditoria visual').slice(0,200),
+    time:audit.finished_at||audit.started_at,href:audit.artifact_url,origin:'github'});
+  }
   if(!evidence.error&&!drafts.error){
    const draftIds=new Set((drafts.data||[]).map(x=>x.id));
    queue=(evidence.data||[]).filter(x=>draftIds.has(x.article_id)).length;
   }
  }
- const agents=profiles.map(p=>classify(p.id,deliveries.filter(x=>x.agentId===p.id),
-  runs.filter(x=>x.agentId===p.id),jobs,queue,heartbeats.find(x=>x.agent_id===p.id),telemetry,now));
+ deliveries.sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
+ const agents=profiles.map(p=>{
+  const agent=classify(p.id,deliveries.filter(x=>x.agentId===p.id),
+   runs.filter(x=>x.agentId===p.id),jobs,queue,heartbeats.find(x=>x.agent_id===p.id),telemetry,now);
+  if(p.id==='design'&&designAudits.length){
+   const audit=designAudits[0];
+   agent.mission.auditReport=audit.report||null;
+   agent.mission.auditUrl=audit.artifact_url||null;
+   agent.lastOrigin='GitHub Actions / revisão de design';
+   if(audit.status==='completed'){
+    agent.activity='Revisão visual concluída: relatório e capturas disponíveis';
+    agent.mission.windowLabel='Relatório entregue';
+   }else if(audit.status==='error'){
+    agent.activity='Auditoria interrompida: '+(audit.error_message||'falha registrada');
+   }
+  }
+  return agent;
+ });
  const failures=[n.error,m.error,w.error].filter(Boolean);
  return {checkedAt,telemetry,agents,deliveries,github:git.summary,
   notice:failures.length?'Algumas publicações não puderam ser consultadas.':null};
