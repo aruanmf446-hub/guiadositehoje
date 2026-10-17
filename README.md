@@ -10,15 +10,18 @@ partidas dos **próximos sete dias** em `public.matches` com URLs e SEO próprio
 
 - Cron: `guia-de-hoje-coletor-sql`, execução a cada 5 minutos. Faz uma chamada externa
   por vez nas janelas 06h–06h55, 12h–12h55, 18h–18h55 (Brasília).
-- Consulta mundial de jogos e recortes do Brasileirão Série A, Premier League e
-  Liga dos Campeões. O limite gratuito da fonte pode omitir partidas; **não garante
-  todos os jogos**.
+- Prioridade às Séries **A, B, C e D** do Brasileirão, com oito consultas diárias por divisão.
+  Se não houver partidas disponíveis, não são geradas partidas ou canais fictícios.
+  O limite gratuito da fonte pode omitir partidas; **não garante todos os jogos**.
 - Grade brasileira: só informa canal quando a fonte relaciona o evento a `Brazil`;
   sem evidência, mostra **transmissão a confirmar**. Dados sujeitos a alterações.
 - Evita duplicatas com `external_ref` e mantém URLs por partida estáveis.
-- URLs: `/futebol`, `/futebol/onde-assistir`, `/futebol/[slug]` e `/sitemap.xml`.
-- Cada artigo de futebol tem meta title, descrição, canonical, Open Graph e
-  dados estruturados `SportsEvent`.
+- URLs: `/futebol`, `/futebol/onde-assistir`, `/futebol/[slug]`,
+  `/futebol/campeonatos/[slug]` e `/sitemap.xml`.
+- Cada jogo tem meta title, descrição, canonical, Open Graph e
+  dados estruturados `SportsEvent`. As divisões recebem metadados próprios e
+  páginas `CollectionPage`; **só entram no sitemap quando têm jogos próximos**.
+  Competições sem jogos têm `noindex`.
 - Site: revalidação automática de ~5 minutos; sitemap de ~15 minutos.
 
 **O coletor antigo da Edge Function `atualizar-jogos` foi DESATIVADO do cron.**
