@@ -915,3 +915,23 @@
 @media(prefers-reduced-motion:reduce){
  .office-station,.station-monitor{transition:none!important}
 }
+
+
+/* Cena mobile mais preenchida: ambientação também na área inferior. */
+@media(max-width:700px) and (min-height:621px){
+ .scene-wall{height:62px;min-height:62px;flex-basis:62px;padding:5px 5%}
+ .scene-sign{font-size:8px;letter-spacing:1px;padding:8px 10px}
+ .scene-windows{height:55px;top:0}
+ .scene-windows>div{height:52px;width:33px}
+ .scene-clock{width:29px;height:29px;font-size:18px;flex:none}
+ .scene-lounge{display:block;left:6%;bottom:14px;transform:scale(.68);transform-origin:bottom left;opacity:.95}
+ .scene-art-board{display:grid;right:5%;top:auto;bottom:28px;width:76px;height:71px;
+  transform:rotate(3deg);border-width:4px;gap:3px;padding:7px;font-size:13px}
+ .scene-cabinet{display:flex;bottom:12px;left:41%;transform:scale(.65);transform-origin:bottom left;z-index:1}
+ .scene-plant.plant-a{display:block;right:15%;bottom:3px;transform:scale(.5);transform-origin:bottom right}
+ .scene-plant.plant-b{display:block;left:1px;top:38%;transform:scale(.4);transform-origin:bottom left}
+ .scene-stations{padding-bottom:22px}
+}
+@media(max-width:700px) and (max-height:620px){
+ .scene-lounge,.scene-art-board,.scene-cabinet{display:none}
+}
