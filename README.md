@@ -1,52 +1,70 @@
 # Guia de Hoje
 
-Site com os jogos do dia, notícias e onde assistir filmes, séries e programas.
-Layout baseado no design do canvas "Guia de Hoje".
+Portal Next.js (App Router) com jogos do dia, notícias e guia de onde assistir.
+O conteúdo público é consultado do projeto Supabase **guiadehoje.site**.
 
-Stack: Next.js (App Router) + React + TypeScript + Supabase (cliente pronto).
-
-## Rodar localmente
+## Rodar
 
 ```bash
-npm install
-cp .env.example .env.local   # preencha as variáveis do Supabase (opcional nesta etapa)
+npm ci
 npm run dev
+npm run typecheck
+npm run build
 ```
 
-Abra http://localhost:3000.
+As credenciais **publicáveis** do Supabase já estão definidas como padrão em
+`lib/supabase.ts`. Pode sobrescrevê-las com variáveis descritas em `.env.example`.
+**Nunca** exponha chave `service_role` / `secret` em frontend ou GitHub.
 
-Outros comandos:
+## Banco de dados
 
-```bash
-npm run typecheck   # checagem de tipos
-npm run build       # build de produção
-npm run start       # roda o build
-```
+Projeto: `kffzngznzjgioabtqxju` (https://supabase.com/dashboard/project/kffzngznzjgioabtqxju).
 
-## Estrutura
+Tabelas criadas e protegidas por RLS:
 
-```
-app/            layout, página inicial e CSS global (tokens de cor e fonte em :root)
-components/     seções e controles de filtro (client components onde há estado)
-lib/data.ts     dados de exemplo (jogos, notícias, títulos) — troque por consultas ao Supabase
-lib/supabase.ts cliente Supabase; retorna null se as variáveis não estiverem definidas
-```
+- `news_articles`: textos completos, fontes e workflow `draft/published/archived`
+- `matches`: partidas e transmissões por data em Brasília
+- `watch_titles`: títulos e plataformas para assistir
+
+A leitura pública só retorna artigos publicados (inclusive data de publicação vencida)
+e jogos/guias marcados como publicados. **Não há permissões públicas de escrita.**
+Para cadastrar/editar, utilize o Table Editor/SQL Editor do Supabase ou um processo
+de backend autenticado usando uma chave secreta exclusivamente no servidor.
+
+### Publicar uma notícia
+
+Na tabela `news_articles`, informe `slug` (minúsculas, hífens), `headline`,
+`summary`, `body`, `category`, `source_url`, `source_name`,
+`published_at` e `status='published'`.
+O corpo é texto simples: parágrafos separados por linha em branco.
+Um artigo publicado exige data, corpo e URL de fonte.
+Fotos devem ser de uso autorizado; informe `image_url` e `image_alt` somente
+quando houver direito de uso.
+
+Jogos e catálogos só aparecerão quando `is_published=true`. Partidas precisam
+de `game_date` (data de Brasília), `kickoff_at` e equipes.
+
+**O banco começa vazio.** A home mostra mensagens neutras e nunca apresenta dados
+inventados. A publicação automática por agente de IA não está ativada nesta entrega.
+
+## SEO
+
+- Títulos e descrições (homepage, arquivo de notícias e cada artigo)
+- Canonicals e Open Graph / Twitter Cards
+- Imagem de compartilhamento gerada pelo Next.js
+- `/robots.txt` e `/sitemap.xml` com URLs de artigos publicados
+- Dados estruturados `WebSite`, `Organization` e `NewsArticle`
+- Artigos com URLs permanentes em `/noticias/[slug]`
+
+O domínio canônico padrão é `https://guiadehoje.site`, baseado na identificação
+do site. Caso o domínio efetivo seja outro, defina `NEXT_PUBLIC_SITE_URL` na
+hospedagem **antes de indexar o site**.
 
 ## Deploy
 
-### Parte 1 — preparação do código (feita)
+Implante na Vercel como Next.js. O site pode ler o projeto Supabase diretamente,
+sem credenciais privadas nem novo banco. A home revalida conteúdo periodicamente
+(`300s`); não exige um redeploy para buscar novas publicações.
 
-- Projeto Next.js compila sem erros (`npm run build`).
-- `.env.example` lista as variáveis necessárias.
-- `.gitignore` deixa de fora `node_modules`, `.next`, `.env*.local` e `.vercel`.
-
-### Parte 2 — Vercel e Supabase
-
-1. **Supabase**: criar o projeto e copiar a URL e a chave `anon` em *Project Settings > API*.
-2. **Vercel**: importar o repositório `aruanmf446-hub/guiadositehoje`; o framework Next.js é detectado automaticamente.
-3. Cadastrar em *Settings > Environment Variables* (Production e Preview):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Fazer o deploy. Depois de criar as tabelas no Supabase, substituir os dados de `lib/data.ts` por consultas.
-
-Observação: a data no topo da página é calculada no build. Sem um novo deploy, ela fica com a data do último build. Para atualizar todo dia, use um Deploy Hook da Vercel agendado ou busque os dados em tempo de requisição.
+Após configurar domínio e publicar, valide no Search Console:
+`https://guiadehoje.site/sitemap.xml`.
