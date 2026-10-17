@@ -21,8 +21,9 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   if(!comp)return {title:'Competição não encontrada',robots:{index:false,follow:false}};
   const games=await getCompetitionGames(slug);
   const name=comp.name;
+  const year=new Intl.DateTimeFormat('en-US',{year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date());
   return {
-    title:`${name} 2026: próximos jogos, horários e transmissões`,
+    title:`${name} ${year}: próximos jogos, horários e transmissões`,
     description:comp.description,
     alternates:{canonical:`/futebol/campeonatos/${comp.slug}`},
     robots:games.length?{index:true,follow:true}:{index:false,follow:true},
