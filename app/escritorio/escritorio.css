@@ -1064,3 +1064,17 @@
  .office-scene .scene-floor{min-height:100%!important}
  .office-scene .station-nameplate{height:27%!important}
 }
+
+
+/* Ajuste fino da arte: placas alinhadas às mesas e balões sem texto impresso. */
+.office-scene .office-station:nth-child(-n+3),
+.office-scene .office-station:nth-child(-n+3):not(:hover){
+ height:28.5%!important
+}
+.office-scene .office-station:nth-child(n+4){
+ height:27.5%!important
+}
+.office-scene .office-station:nth-child(-n+3) .station-bubble{
+ top:10%!important
+}
+.office-scene .station-nameplate{ height:38%!important }
