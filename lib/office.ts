@@ -38,7 +38,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   ...titles.map(x=>({id:'w-'+x.id,agentId:(x.kind==='Filmes'?'filmes':'series') as AgentId,title:x.title,detail:x.platform||x.kind,time:x.updated_at,href:'/filmes-series'}))
  ].filter(x=>x.time&&!Number.isNaN(Date.parse(x.time))).sort((a,b)=>Date.parse(b.time)-Date.parse(a.time)).slice(0,60);
  const runs:Run[]=[];
- const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ const secret=process.env.OFFICE_PASSWORD ? process.env.SUPABASE_SERVICE_ROLE_KEY : undefined;
  let telemetry=false;
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
