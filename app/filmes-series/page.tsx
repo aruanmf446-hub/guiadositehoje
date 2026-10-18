@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {getWatchTitles} from '@/lib/content';
 import type {WatchTitle} from '@/lib/data';
 import {mediaHref,mediaImage} from '@/lib/media';
-import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 import {SiteHeader} from '@/components/SiteHeader';
 import {SiteFooter} from '@/components/SiteFooter';
 export const revalidate=600;
@@ -20,12 +19,12 @@ function Group({title,id,items}:{title:string;id:string;items:WatchTitle[]}){
   </div>
   {items.length===0?<p>Novas fichas estão em preparação.</p>:
    <div className="media-archive-grid">{items.map((item,i)=><Link href={mediaHref(item)} className="media-archive-card" key={item.id}>
-    <div className="media-archive-art has-cover">
-     <img src={mediaImage(item)||editorialCover(item.kind==='Filmes'?'filme':'serie',item.title)}
-      alt={mediaImage(item)?'Imagem de '+item.title:'Capa editorial de '+item.title} loading="lazy"/>
-     <span className="media-cover-credit">{mediaImage(item)?
-      item.posterCredit||'Imagem disponibilizada pela fonte':editorialCoverCredit}</span>
-    </div>
+    {mediaImage(item)?
+     <figure className="media-archive-art has-cover">
+      <img src={mediaImage(item)} alt={'Imagem da produção '+item.title} loading="lazy"/>
+      <figcaption className="media-cover-credit">{item.posterCredit||'Imagem disponibilizada pela fonte'}</figcaption>
+     </figure>:
+     <div className="media-no-photo media-archive-art"><span>Imagem oficial não disponível</span></div>}
     <div className="media-archive-info"><span className="media-archive-number">{String(i+1).padStart(2,'0')} · {item.kind==='Filmes'?'FILME':'SÉRIE'}</span>
      <h3>{item.title}</h3><p>{item.synopsis||'Conheça a ficha e as informações de produção.'}</p>
      <span className="media-archive-link">Ler guia completo <span aria-hidden="true">↗</span></span>
