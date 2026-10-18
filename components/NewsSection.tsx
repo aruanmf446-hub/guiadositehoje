@@ -34,8 +34,11 @@ export function NewsSection({news}:{news:NewsItem[]}){
         <div className="magazine-feed-title">MAIS DO DIA <span>{String(others.length).padStart(2,'0')}</span></div>
         {others.slice(0,4).map((a,i)=><article key={a.id} className="magazine-brief">
           <span className="brief-number">{String(i+2).padStart(2,'0')}</span>
-          <div>{a.imageUrl&&<img className="news-list-cover" src={a.imageUrl}
-           alt={a.imageAlt||'Fotografia relacionada à notícia'} loading="lazy"/>}
+          <div>{a.imageUrl&&<figure className="news-brief-figure">
+            <img className="news-list-cover" src={a.imageUrl}
+             alt={a.imageAlt||'Fotografia relacionada à notícia'} loading="lazy"/>
+            <figcaption>{a.imageCredit||'Crédito da fonte'}</figcaption>
+           </figure>}
            <span className="story-kicker">{a.category} · {date(a.publishedAt)}</span>
             <h3><Link href={'/noticias/'+a.slug}>{a.headline}</Link></h3>
             <p>{a.summary}</p>
