@@ -11,7 +11,7 @@ const stateLabels:Record<AgentState,string>={
  error:'Precisa de atenção',unconnected:'Sem execução registrada'
 };
 const idLabels:Record<AgentId,string>={
- futebol:'Futebol',noticias:'Notícias',filmes:'Filmes',series:'Séries',seo:'Redação SEO',design:'Design'
+ futebol:'Futebol',noticias:'Notícias',filmes:'Filmes',series:'Séries',seo:'Redação SEO',design:'Design',imagens:'Imagens'
 };
 function clock(iso:string|null){
  if(!iso)return 'Sem registro';
@@ -77,7 +77,7 @@ function Station({agent,selected,onSelect}:{agent:OfficeAgent;selected:boolean;o
    <span className="station-keyboard"/>
    <span className="station-cup"/>
    <span className="station-prop" aria-hidden="true">{({
-    futebol:'⚽',noticias:'📰',filmes:'🍿',series:'📺',seo:'✎',design:'🎨'
+    futebol:'⚽',noticias:'📰',filmes:'🍿',series:'📺',seo:'✎',design:'🎨',imagens:'🖼️'
    } as Record<AgentId,string>)[agent.id]}</span>
    <span className="station-notebook" aria-hidden="true"/>
   </span>
