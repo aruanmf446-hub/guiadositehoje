@@ -3,16 +3,16 @@ import {useState} from 'react';
 import Link from 'next/link';
 import type {WatchTitle,WatchKind} from '@/lib/data';
 import {mediaHref,mediaImage} from '@/lib/media';
+import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 function Cover({item,className=''}:{item:WatchTitle;className?:string}){
  const url=mediaImage(item);
- return <div className={'film-cover '+(url?'film-cover-real ':'film-cover-graphic ')+className}
+ return <figure className={'film-cover film-cover-real '+className}
    aria-label={'Imagem de '+item.title}>
-  {url?<img src={url} alt={'Imagem da série '+item.title} loading="lazy"/>:
-   <><span className="film-cover-icon" aria-hidden="true">✳</span>
-   <span className="film-cover-type">GUIA / CINEMA</span>
-   <span className="film-cover-title">{item.title}</span>
-   <span className="film-cover-index">EDIÇÃO 2026 <span>↗</span></span></>}
- </div>;
+  <img src={url||editorialCover(item.kind==='Filmes'?'filme':'serie',item.title)}
+    alt={url?'Imagem de '+item.title:'Capa editorial ilustrativa de '+item.title} loading="lazy"/>
+  <figcaption className="cover-caption">{url?
+   item.posterCredit||'Imagem disponibilizada pela fonte':editorialCoverCredit}</figcaption>
+ </figure>;
 }
 export function WatchSection({titles}:{titles:WatchTitle[]}){
  const [kind,setKind]=useState<WatchKind>('Filmes');
