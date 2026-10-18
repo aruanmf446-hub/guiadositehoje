@@ -755,3 +755,40 @@ html {scroll-padding-top:104px;}
  .news-index-cover{width:130px}
  .archive-news-cover figcaption,.football-tile-cover figcaption{font-size:9px}
 }
+
+
+/* Fotos jornalísticas reais: texto ao lado da foto e crédito visível ABAIXO,
+   nunca dentro do arquivo de imagem nem escondido sob gradiente. */
+.news-index-row .index-copy.index-with-photo{
+ display:grid;grid-template-columns:minmax(175px,280px) minmax(0,1fr);
+ align-items:start;gap:22px;min-width:0
+}
+.news-index-row .index-copy:not(.index-with-photo){display:block;min-width:0}
+.news-index-figure,.archive-news-cover,.magazine-cover{margin:0 0 14px;background:transparent}
+.news-index-figure img,.archive-news-cover img,.magazine-cover img{
+ display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:11px
+}
+.news-index-figure figcaption,.archive-news-cover figcaption,.magazine-cover figcaption{
+ position:static!important;display:block!important;width:100%;
+ padding:7px 1px 0!important;margin:0!important;
+ background:none!important;color:#64736e!important;
+ font:500 11px/1.35 var(--font-body),sans-serif!important;
+ letter-spacing:0!important;text-transform:none!important;
+ white-space:normal!important;text-overflow:unset!important;
+ overflow:visible!important
+}
+.news-index-figure figcaption a,.archive-news-cover figcaption a,
+.magazine-cover figcaption a,.editorial-figure figcaption a{
+ text-decoration:underline;text-underline-offset:2px;color:#315d55
+}
+.news-index-text{min-width:0}
+.news-index-text h3{margin-top:8px;overflow-wrap:anywhere}
+.archive-feature .archive-news-cover{max-width:100%;margin:0 0 20px}
+.archive-feature .archive-news-cover img{max-height:490px}
+.news-index-row{align-items:start}
+@media(max-width:710px){
+ .news-index-row .index-copy.index-with-photo{grid-template-columns:1fr;gap:8px}
+ .news-index-figure img{max-height:270px}
+ .news-index-figure figcaption{font-size:10px!important}
+ .news-index-row .index-copy h3{font-size:clamp(18px,5vw,24px)}
+}
