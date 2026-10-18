@@ -12,5 +12,7 @@ export function mediaHasEditorial(item:WatchTitle):boolean{
 }
 export function mediaImage(item:WatchTitle):string|undefined{
  // Somente imagens vindas do catálogo TVmaze, não URLs arbitrárias de bancos.
- return item.posterUrl?.startsWith('https://static.tvmaze.com/')?item.posterUrl:undefined;
+ return item.posterUrl?.startsWith('https://static.tvmaze.com/')||
+  item.posterUrl?.startsWith('https://upload.wikimedia.org/wikipedia/commons/')?
+  item.posterUrl:undefined;
 }
