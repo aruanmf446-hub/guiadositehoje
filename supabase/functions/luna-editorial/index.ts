@@ -94,7 +94,7 @@ Deno.serve(async req=>{
    channel:show.network?.name||show.webChannel?.name||null,
    brazil: item.availability_status==='schedule_br'?'grade brasileira confirmada':'não confirmada',
    source:show.url};
-  const instruction='Redija uma ficha ORIGINAL em português do Brasil com fatos EXCLUSIVAMENTE dos dados JSON. Não invente elenco, episódios, temporadas, premiações, ano, streaming no Brasil, opinião ou audiência. Parafraseie a sinopse sem copiar frases longas. Se informação insuficiente, retorne {"insufficient":true}. Responda APENAS JSON {"seo_title":"...","seo_description":"...","body":"..."}: SEO title até 90 caracteres, descrição entre 100 e 160 caracteres, body de 480 a 1000 caracteres dividido em três parágrafos (quebras escapadas como \\n\\n), contando premissa, gênero e informações verificadas. Não repita ideias para atingir tamanho. Não afirme disponibilidade no Brasil se não confirmada.';
+  const instruction='Você é editora jornalística e escreve um GUIA FACTUAL em português do Brasil. Use EXCLUSIVAMENTE informações explícitas do JSON da TVmaze. Não invente eliminações, vencedores, episódios, temporadas, premiações, data de lançamento no Brasil, plataforma brasileira, críticas, popularidade, recomendações ou opiniões. NÃO afirme que a série inspira, surpreende, promete entretenimento nem especule sobre participantes. Só mencione convidados, jurados e canal original quando esses fatos constarem na fonte. Atribua à ficha TVmaze as informações de catálogo. Se não houver fatos suficientes para três parágrafos úteis, retorne {"insufficient":true}. Produza apenas JSON {"seo_title":"...","seo_description":"...","body":"..."}, título até 90 caracteres, descrição 100 a 160 caracteres, corpo original de 450 a 1000 caracteres em três parágrafos factuais (separados por \\n\\n). Nunca copie longas sequências da sinopse. Não invente disponibilidade no Brasil; informe quando não estiver confirmada.';
   const resp=await fetch('https://api.cloudflare.com/client/v4/accounts/'+ACCOUNT+'/ai/run/'+MODEL,{
    method:'POST',headers:{Authorization:'Bearer '+aiToken,'Content-Type':'application/json'},
    body:JSON.stringify({messages:[{role:'system',content:instruction},
@@ -114,11 +114,24 @@ Deno.serve(async req=>{
   let copy=false;
   for(let i=0;i+100<main.length;i+=50)if(original.includes(main.slice(i,i+100))){copy=true;break;}
   const unsupported=(body.match(/\b(?:19|20)\d{2}\b/g)||[]).some(y=>!JSON.stringify(facts).includes(y));
-  const invalid=body.length<380||body.length>1450||words<55||seoTitle.length<15||
+  const evidenceText=JSON.stringify(facts).toLowerCase();
+  const checks=[
+    {pattern:/eliminad[oa]s?|eliminações|eliminaç[aã]o|elimination/i,source:/eliminat/i},
+    {pattern:/vencedor(?:es|a)?|winner|finalistas?/i,source:/winner|finalist|victor/i},
+    {pattern:/episódios? novos|temporadas? novas|segunda temporada/i,source:/new season|second season|new episode/i},
+    {pattern:/reality premiad[oa]|premiaç[aã]o/i,source:/award|prize/i},
+    {pattern:/estreia no brasil|streaming no brasil|disponível no brasil/i,source:/brazil|brasil/i}
+  ];
+  const unsupportedClaim=checks.some(({pattern,source})=>pattern.test(body)&&!source.test(evidenceText));
+  const promotional=/promete (?:entreter|emocionar|surpreender)|obra-prima|imperdível|aclamad[oa]|impressionantes? performances|chei[ao] de surpresas|experiência única/i.test(body);
+  const invalid=unsupportedClaim||promotional||body.length<380||body.length>1450||words<55||seoTitle.length<15||
    seoTitle.length>105||description.length<85||description.length>190||
    copy||unsupported||/obra-prima|imperdível|efeitos visuais impressionantes|trilha sonora|aclamad[oa]|premiad[oa]/i.test(body)||
    /disponível no brasil|assista no brasil/i.test(body)&&facts.brazil==='não confirmada';
-  if(invalid){await finish('needs_review','Falha nos filtros de texto, fatos ou originalidade',words);
+  if(invalid){await finish('needs_review',
+      unsupportedClaim?'Afirmação não comprovada na fonte':
+      promotional?'Linguagem promocional não autorizada':
+      'Falha nos filtros de estrutura, fatos ou originalidade',words);
    return reply({status:'needs_review',slot,words});}
   const saved:Row[]=await db('watch_titles?id=eq.'+item.id,'PATCH',{
    editorial_body:body,seo_title:seoTitle.slice(0,100),
