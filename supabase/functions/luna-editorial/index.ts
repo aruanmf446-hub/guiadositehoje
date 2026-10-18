@@ -52,9 +52,12 @@ Deno.serve(async req=>{
  }catch{return reply({error:'auth_failure'},503);}
  const aiToken=Deno.env.get('CLOUDFLARE_AI_TOKEN');
  if(!aiToken)return reply({error:'cloudflare_token_missing'},503);
- const {day,hour}=localParts(),slot=day+'/'+(hour<12?'manha':'noite');
+ const {day,hour}=localParts(),baseSlot=day+'/'+(hour<12?'manha':'noite');
  const past:Row[]=await db('luna_editorial_runs?select=title_id,slot_key,state,started_at&order=started_at.desc&limit=150');
- if(past.some(r=>r.slot_key===slot))return reply({status:'slot_already_checked',slot});
+ const primary=past.find(r=>r.slot_key===baseSlot);
+ const slot=primary&&['error','needs_review'].includes(primary.state)?baseSlot+'/retry':baseSlot;
+ if(past.some(r=>r.slot_key===slot)||['published','running'].includes(primary?.state||''))
+   return reply({status:'slot_already_checked',slot});
  if(past.filter(r=>r.slot_key.startsWith(day+'/')&&r.state==='published').length>=2)
   return reply({status:'daily_limit',slot});
  const items:Row[]=await db('watch_titles?select=id,title,synopsis,source_url,external_ref,editorial_body,availability_status&kind=eq.S%C3%A9ries&is_published=eq.true&order=updated_at.desc&limit=100');
