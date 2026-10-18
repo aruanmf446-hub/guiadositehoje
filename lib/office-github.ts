@@ -42,7 +42,7 @@ export async function getGitHubOffice():Promise<{deliveries:Delivery[];summary:G
   const running=(runResponse.workflow_runs||[]).filter(r=>r.status==='in_progress'||r.status==='queued'||r.status==='waiting');
   const last=commits[0];
   return {
-   deliveries,
+   deliveries:[], // Commits de programadores não são entregas dos agentes.
    summary:{
     connected:true,
     lastCommit:last?{title:last.commit.message.trim().split('\n')[0],time:last.commit.committer?.date||last.commit.author?.date||'',href:last.html_url}:null,
