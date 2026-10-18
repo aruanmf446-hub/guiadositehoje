@@ -98,10 +98,10 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
    active?'active':failed.length?'error':completed.length?'done':'next',
    active?first.time:latestEnd||processAt),
   stage(id==='seo'?'Checar qualidade e publicação':'Registrar resultados no portal',
-   hasRequests?(failed.length?failed.length+' falha(s) confirmada(s). ':
-    '')+(processed>0?processed+' registro(s) confirmado(s)':'Nenhuma nova entrega confirmada'):
+   hasRequests?(failed.length?failed.length+' item(ns) pendente(s) de revisão. ':
+    '')+(processed>0?processed+' registro(s) concluído(s)':'Nenhuma entrega confirmada'):
     'Disponível após o processamento',
-   active?'next':failed.length?'error':completed.length?'done':'next',latestEnd),
+   active?'next':completed.length?'done':failed.length?'error':'next',latestEnd),
   stage('Próxima rodada agendada',
    nextAt?'Nova janela às '+nextTime+' (horário de Brasília)':'Ainda sem próxima data confirmada',
    'next',nextAt)
@@ -114,6 +114,10 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
 function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number,heartbeat:Heartbeat|undefined,telemetry:boolean,now:number):OfficeAgent{
  const run=runs.slice().sort((a,b)=>Date.parse(b.time)-Date.parse(a.time))[0];
  const last=items[0]||null;
+ // Um erro em outra pauta não apaga uma publicação real feita nesta janela.
+ // Revisões pendentes seguem visíveis nas etapas, sem inventar sucesso integral.
+ const recentEditorial=items.find(d=>d.origin==='published'&&recent(d.time,240,now));
+ const successfulRun=runs.find(r=>['published','ok'].includes(r.status)&&recent(r.doneAt||r.time,240,now));
  let lastSeen=newer(run?.doneAt||run?.time||null,last?.time||null);
  const job=jobs.find(x=>x.jobname===jobName[id]);
  const nextAt=id==='design'?nextCron('20 13 * * 1',now):job?.active?nextCron(job.schedule,now):null;
@@ -129,8 +133,17 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
   if(recent(run.time,20,now)){state='working';activity='Execução em andamento, registrada no banco';}
  }
  if(state!=='working'&&['error','failed','needs_review'].includes(run?.status||'')){
-  state='error';activity=run?.status==='needs_review'?
-   'Matéria reprovada na revisão: não foi publicada':'Última execução falhou: nenhuma publicação confirmada';
+  if(recentEditorial||successfulRun){
+   state='recent';
+   activity=recentEditorial?
+    'Publicação confirmada; existem outras pautas em revisão':
+    'Rodada com entregas confirmadas e pendências de revisão';
+  }else{
+   state='error';
+   activity=run?.status==='needs_review'?
+    'Matéria em revisão: publicação ainda não concluída':
+    'Última tentativa falhou; sem publicação confirmada neste turno';
+  }
  }
  if(state==='waiting'&&run?.status==='pending'&&recent(run.time,25,now)){
   activity='Solicitação na fila aguardando conclusão';
