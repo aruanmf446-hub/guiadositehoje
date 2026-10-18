@@ -4,7 +4,7 @@ import type { Game, NewsArticle, NewsItem, WatchKind, WatchTitle } from '@/lib/d
 
 type NewsRow = {
   id: string; slug: string; headline: string; summary: string; body?: string;
-  category: string; image_url: string | null; image_alt: string | null;
+  category: string; image_url: string | null; image_alt: string | null; image_credit: string | null; image_credit_url: string | null;
   published_at: string; updated_at: string; source_name: string | null; source_url: string | null; is_aggregated: boolean; seo_title:string|null;seo_description:string|null;generated_by_ai:boolean;editorial_verification:string;
 };
 
@@ -12,7 +12,8 @@ function mapNews(row: NewsRow): NewsItem {
   return {
     id: row.id, slug: row.slug, headline: row.headline, summary: row.summary,
     category: row.category, imageUrl: row.image_url || undefined,
-    imageAlt: row.image_alt || undefined, publishedAt: row.published_at,
+    imageAlt: row.image_alt || undefined, imageCredit: row.image_credit || undefined,
+    imageCreditUrl: row.image_credit_url || undefined, publishedAt: row.published_at,
     updatedAt: row.updated_at, sourceName: row.source_name || undefined,
     sourceUrl: row.source_url || undefined, isAggregated: row.is_aggregated,
     seoTitle:row.seo_title||undefined,seoDescription:row.seo_description||undefined,
@@ -22,7 +23,7 @@ function mapNews(row: NewsRow): NewsItem {
 
 export async function getPublishedNews(limit = 8): Promise<NewsItem[]> {
   const { data, error } = await getSupabase().from('news_articles')
-    .select('id,slug,headline,summary,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
+    .select('id,slug,headline,summary,category,image_url,image_alt,image_credit,image_credit_url,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
     .eq('status', 'published').lte('published_at', new Date().toISOString())
     .order('published_at', { ascending: false }).limit(limit);
   if (error) { console.error('Erro ao consultar notícias:', error.message); return []; }
@@ -31,7 +32,7 @@ export async function getPublishedNews(limit = 8): Promise<NewsItem[]> {
 
 export async function getArticle(slug: string): Promise<NewsArticle | null> {
   const { data, error } = await getSupabase().from('news_articles')
-    .select('id,slug,headline,summary,body,category,image_url,image_alt,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
+    .select('id,slug,headline,summary,body,category,image_url,image_alt,image_credit,image_credit_url,published_at,updated_at,source_name,source_url,is_aggregated,seo_title,seo_description,generated_by_ai,editorial_verification')
     .eq('slug', slug).eq('status', 'published')
     .lte('published_at', new Date().toISOString()).maybeSingle();
   if (error) { console.error('Erro ao consultar artigo:', error.message); return null; }
@@ -72,16 +73,17 @@ export async function getTodaysGames(): Promise<Game[]> {
   }));
 }
 
-type WatchRow = { id: string; kind: WatchKind; platform: string; title: string; poster_url: string | null; source_url:string | null; watch_url:string | null; availability_status:string; synopsis:string | null; editorial_body:string|null;seo_title:string|null;seo_description:string|null;updated_at:string; };
+type WatchRow = { id: string; kind: WatchKind; platform: string; title: string; poster_url: string | null; poster_credit:string|null; poster_credit_url:string|null; source_url:string | null; watch_url:string | null; availability_status:string; synopsis:string | null; editorial_body:string|null;seo_title:string|null;seo_description:string|null;updated_at:string; };
 
 export async function getWatchTitles(): Promise<WatchTitle[]> {
   const { data, error } = await getSupabase().from('watch_titles')
-    .select('id,kind,platform,title,poster_url,source_url,watch_url,availability_status,synopsis,editorial_body,seo_title,seo_description,updated_at').eq('is_published', true)
+    .select('id,kind,platform,title,poster_url,poster_credit,poster_credit_url,source_url,watch_url,availability_status,synopsis,editorial_body,seo_title,seo_description,updated_at').eq('is_published', true)
     .order('updated_at', { ascending: false }).limit(60);
   if (error) { console.error('Erro ao consultar onde assistir:', error.message); return []; }
   return ((data || []) as WatchRow[]).map(row => ({
     id: row.id, kind: row.kind, platform: row.platform, title: row.title,
     posterUrl: row.poster_url || undefined,
+    posterCredit:row.poster_credit||undefined,posterCreditUrl:row.poster_credit_url||undefined,
     sourceUrl: row.source_url || undefined,
     watchUrl: row.watch_url || undefined,
     availabilityStatus: row.availability_status,
