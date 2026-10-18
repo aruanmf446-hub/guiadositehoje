@@ -85,6 +85,48 @@ async function commons(title:string,kind:'noticia'|'midia'):Promise<Asset|null>{
 type Kind='noticia'|'midia'|'jogo';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const restId=(kind:Kind,id:string)=>'agent_image_runs?kind=eq.'+kind+'&item_id=eq.'+id;
+
+// Fotografias originais da Agência Brasil: reproduzidas para fins jornalísticos
+// com autoria identificada. Rejeita conteúdo de agências parceiras e direitos reservados.
+// O banco guarda apenas URL, texto alternativo, autor e link da fonte (nunca os bytes).
+async function agencyBrasilAsset(row:Row):Promise<Asset|null>{
+ const url=String(row.source_url||'').replace(/&amp;/g,'&');
+ let location:URL;
+ try{location=new URL(url);}catch{return null;}
+ if(location.protocol!=='https:'||location.hostname!=='agenciabrasil.ebc.com.br'||
+  !location.pathname.includes('/noticia/'))return null;
+ const response=await fetch(location.toString(),{
+  headers:{'Accept':'text/html','User-Agent':'GuiaDeHoje/1.0 (+https://guiadehoje.site)'},
+  signal:AbortSignal.timeout(16000)});
+ if(!response.ok)throw Error('Agência Brasil HTTP '+response.status);
+ const html=(await response.text()).slice(0,300000);
+ const tags=[...html.matchAll(/<meta\b[^>]*>/gi)].map(x=>x[0]);
+ function meta(key:string):string{
+  for(const tag of tags){
+   const attrs:Record<string,string>={};
+   for(const m of tag.matchAll(/([\w:-]+)\s*=\s*("|')([\s\S]*?)\2/g))
+    attrs[m[1].toLowerCase()]=m[3];
+   if(attrs.property===key||attrs.name===key)return String(attrs.content||'')
+    .replace(/&amp;/g,'&').replace(/&quot;/g,'"').trim();
+  }
+  return '';
+ }
+ const image=meta('og:image'),imageAlt=meta('twitter:image:alt');
+ let parsed:URL;
+ try{parsed=new URL(image);}catch{return null;}
+ if(parsed.protocol!=='https:'||parsed.hostname!=='imagens.ebc.com.br'||
+  !parsed.pathname.includes('agenciabrasil.ebc.com.br/sites/default/files/')||
+  !/\.(jpg|jpeg|png|webp)(?:\?|$)/i.test(image))return null;
+ const candidate=(imageAlt.match(/(?:Foto|Crédito|Créditos|©)\s*:?\s*([^\n]{4,120})$/i)||[])[1]||'';
+ // Somente fotógrafos da Agência Brasil ou produções próprias da TV Brasil/EBC.
+ if(!/(?:\/\s*Agência Brasil|\/\s*TV Brasil|\/\s*EBC|^TV Brasil\b|^EBC\b)/i.test(candidate)||
+  /reuters|associated press|afp|ap photo|direitos reservados|shutterstock|getty|alamy/i.test(candidate))
+  return null;
+ const credit=candidate.trim().replace(/\s*[\\"']+$/,'').slice(0,120);
+ return {url:image,alt:strip(imageAlt).slice(0,300)||'Fotografia da Agência Brasil',
+  credit:'Foto: '+credit,creditUrl:location.origin+location.pathname};
+}
+
 Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
  let db:ReturnType<typeof dbClient>;
@@ -158,7 +200,7 @@ Deno.serve(async req=>{
    try{
     let row:Row|undefined;
     if(kind==='noticia'){
-     const entries:Row[]=await db('news_articles?id=eq.'+id+'&status=eq.published&select=id,headline,image_url,image_credit');
+     const entries:Row[]=await db('news_articles?id=eq.'+id+'&status=eq.published&select=id,headline,source_url,source_name,image_url,image_credit');
      row=entries[0];
     }else if(kind==='midia'){
      const entries:Row[]=await db('watch_titles?id=eq.'+id+'&is_published=eq.true&select=id,title,kind,external_ref,source_url,poster_url,poster_credit');
@@ -173,11 +215,9 @@ Deno.serve(async req=>{
     }
     const title=String(row.headline||row.title||[row.home_team,row.away_team].join(' x '));
     if(kind==='jogo'){
-     const url='https://guiadehoje.site/api/capa?'+new URLSearchParams({tipo:'futebol',titulo:title}).toString();
-     await db(restId(kind,id),'PATCH',{status:'done',image_url:url,
-      credit:'Arte editorial ilustrativa: Guia de Hoje',
-      credit_url:'https://guiadehoje.site',detail:'Capa ilustrativa gerada automaticamente para a partida'});
-     done++;continue;
+     await db(restId(kind,id),'PATCH',{status:'not_found',image_url:null,
+      credit:null,credit_url:null,detail:'Partida registrada; aguarda foto oficial reutilizável dos clubes'});
+     notFound++;continue;
     }
     const imageUrl=kind==='noticia'?row.image_url:row.poster_url;
     const credit=kind==='noticia'?row.image_credit:row.poster_credit;
@@ -193,13 +233,15 @@ Deno.serve(async req=>{
      }
      continue;
     }
-    const asset=kind==='midia'&&row.kind==='Séries'
-     ?(await tvmaze(row))||(await commons(title,'midia'))
-     :await commons(title,kind);
+    const asset=kind==='noticia'
+     ?(await agencyBrasilAsset(row))||(await commons(title,'noticia'))
+     :kind==='midia'&&row.kind==='Séries'
+      ?(await tvmaze(row))||(await commons(title,'midia'))
+      :await commons(title,'midia');
     if(!asset){
      notFound++;
      await db(restId(kind,id),'PATCH',{status:'not_found',
-      detail:'Sem imagem reutilizável identificada; capa editorial ilustrativa disponível'});
+      detail:'Sem fotografia licenciada identificada; conteúdo sem imagem fictícia'});
      continue;
     }
     const path=kind==='noticia'?'news_articles':'watch_titles';
