@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getUpcomingGames, getFootballCompetitions } from '@/lib/football';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -40,6 +41,10 @@ export default async function FootballPage() {
         <h2>{dateLabel(day)}</h2>
         <div className="football-grid">{items?.map(game=>
           <article className="football-tile" key={game.id}>
+            <figure className="football-tile-cover">
+              <img src={editorialCover('futebol',game.home+' x '+game.away)} alt={'Capa do confronto '+game.home+' x '+game.away} loading="lazy"/>
+              <figcaption>{editorialCoverCredit}</figcaption>
+            </figure>
             <span className="kicker">{game.league}</span>
             <h3><Link href={`/futebol/${game.slug}`}>{game.home} x {game.away}</Link></h3>
             <p><time dateTime={game.kickoffAt}>{game.time} — horário de Brasília</time></p>
