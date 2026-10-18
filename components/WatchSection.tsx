@@ -8,10 +8,7 @@ function Cover({item,className=''}:{item:WatchTitle;className?:string}){
  if(!url)return <div className={'media-no-photo '+className}><span>Imagem oficial não disponível</span></div>;
  return <figure className={'film-cover film-cover-real '+className} aria-label={'Fotografia de '+item.title}>
   <img src={url} alt={'Imagem da produção '+item.title} loading="lazy"/>
-  <figcaption className="cover-caption">{item.posterCreditUrl?
-   <a href={item.posterCreditUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>
-    {item.posterCredit||'Crédito da imagem'} ↗</a>:
-   item.posterCredit||'Imagem disponibilizada pela fonte'}</figcaption>
+  <figcaption className="cover-caption">{item.posterCredit||'Imagem disponibilizada pela fonte'}</figcaption>
  </figure>;
 }
 export function WatchSection({titles}:{titles:WatchTitle[]}){
