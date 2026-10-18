@@ -306,6 +306,11 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   return agent;
  });
  const failures=[n.error,m.error,w.error].filter(Boolean);
- return {checkedAt,telemetry,agents,deliveries,github:git.summary,
-  notice:failures.length?'Algumas publicações não puderam ser consultadas.':null};
+ const lastNewsTime=news[0]?.published_at?Date.parse(news[0].published_at):NaN;
+ const editorialDelayed=Number.isNaN(lastNewsTime)||now-lastNewsTime>24*60*60*1000;
+ const notice=failures.length?'Algumas publicações não puderam ser consultadas.':
+  editorialDelayed&&queue>0?
+   'ALERTA EDITORIAL: nenhuma notícia nova foi publicada nas últimas 24 horas. Há '+queue+
+   ' pauta(s) com fonte esperando a redação. Coleta concluída não é publicação.':null;
+ return {checkedAt,telemetry,agents,deliveries,github:git.summary,notice};
 }
