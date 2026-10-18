@@ -5,7 +5,7 @@ import {getGitHubOffice} from '@/lib/office-github';
 import {profiles} from '@/lib/office-shared';
 import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot,OfficeMission,OfficeStep} from '@/lib/office-shared';
 
-type NewsRow={id:string;slug:string;headline:string;category:string;updated_at:string};
+type NewsRow={id:string;slug:string;headline:string;category:string;updated_at:string;published_at:string;generated_by_ai:boolean};
 type MatchRow={id:string;home_team:string;away_team:string;league:string;updated_at:string};
 type WatchRow={id:string;title:string;kind:string;platform:string;updated_at:string;editorial_body:string|null;source_url:string|null};
 type Run={agentId:AgentId;time:string;doneAt:string|null;status:string;count:number;kind?:string;subject?:string;error?:string|null};
@@ -59,7 +59,8 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
  const active=Boolean(fresh&&sorted.some(r=>r.status==='running'&&recent(r.time,25,now)
    ||r.status==='pending'&&recent(r.time,25,now)));
  const todayRuns=fresh?sorted.filter(r=>Math.abs(Date.parse(r.time)-Date.parse(first.time))<35*60000):[];
- const completed=todayRuns.filter(r=>Boolean(r.doneAt)&&['ok','published','needs_review','error','failed'].includes(r.status));
+ const finished=todayRuns.filter(r=>Boolean(r.doneAt)&&['ok','published','needs_review','error','failed'].includes(r.status));
+ const completed=finished.filter(r=>['ok','published'].includes(r.status));
  const failed=todayRuns.filter(r=>['error','failed'].includes(r.status));
  const processed=completed.reduce((sum,r)=>sum+(r.count||0),0);
  const label=(when:string|null)=>when?new Intl.DateTimeFormat('pt-BR',
@@ -92,9 +93,9 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
    hasRequests?'done':'next',hasRequests?first.time:nextAt),
   stage(id==='seo'?'Gerar texto por IA':'Receber e processar respostas',
    active?workDescription:completed.length?
-    completed.length+' de '+todayRuns.length+' solicitações processadas':
+    finished.length+' de '+todayRuns.length+' tentativas finalizadas':
     hasRequests?processNote:'Nenhuma execução registrada nesta rodada',
-   active?'active':failed.length&&!completed.length?'error':completed.length?'done':'next',
+   active?'active':failed.length?'error':completed.length?'done':'next',
    active?first.time:latestEnd||processAt),
   stage(id==='seo'?'Checar qualidade e publicação':'Registrar resultados no portal',
    hasRequests?(failed.length?failed.length+' falha(s) confirmada(s). ':
@@ -127,20 +128,19 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
  if(run?.status==='running'||run?.status==='processing'||run?.status==='in_progress'){
   if(recent(run.time,20,now)){state='working';activity='Execução em andamento, registrada no banco';}
  }
- if(state!=='working'&&run?.status==='error'&&recent(run.doneAt||run.time,120,now)){
+ if(state!=='working'&&['error','failed'].includes(run?.status||'')){
   state='error';activity='Última execução registrou erro';
  }
  if(state==='waiting'&&run?.status==='pending'&&recent(run.time,25,now)){
   activity='Solicitação na fila aguardando conclusão';
  }
- if(state==='waiting'&&run?.status==='ok'&&recent(run.doneAt||run.time,90,now)){
-  state='recent';activity=id==='seo'?(run.count>0?'Redação com '+run.count+' palavras registrada no banco':'Etapa de redação concluída'):run.count>0?'Coleta concluída: '+run.count+' registro(s)':'Coleta concluída, sem registros novos';
+ if(state==='waiting'&&['ok','published'].includes(run?.status||'')&&recent(run.doneAt||run.time,90,now)){
+  state='recent';activity=id==='seo'?(run.status==='published'?'Matéria publicada com '+run.count+' palavras':'Etapa de redação registrada'):
+ run.count>0?'Coleta processada: '+run.count+' registro(s)':'Coleta processada, sem registros novos';
  }
- if(state==='waiting'&&last?.origin==='github'&&recent(last.time,240,now)){
-  state='recent';activity='Alteração de código relacionada a '+(id==='seo'?'SEO':profiles.find(p=>p.id===id)?.job);
- }
- if(state==='waiting'&&recent(items.find(x=>x.origin!=='github')?.time,180,now)){
-  state='recent';activity='Publicação recente no Guia de Hoje';
+ // Commits são apenas manutenção técnica, não publicações dos agentes.
+ if(state==='waiting'&&recent(items.find(x=>x.origin==='published')?.time,180,now)){
+  state='recent';activity='Publicação editorial confirmada no site';
  }
  if(state==='waiting'&&last&&!run)activity='Último trabalho disponível no histórico';
  if(id==='seo'&&queue>0&&state==='waiting')activity=queue+' pauta(s) com evidências aguardando o redator';
@@ -158,8 +158,8 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
 
  const recentRun=run?.doneAt||run?.time;
  lastOrigin=last&&(!recentRun||Date.parse(last.time)>Date.parse(recentRun))?
-  last.origin==='github'?'Commit no GitHub':'Publicação no site':
-  run?'Execução no Supabase':last?'Publicação ou commit':'Nenhuma atividade confirmada';
+  last.origin==='catalog'?'Atualização do catálogo':'Publicação editorial no site':
+  run?'Execução no Supabase':last?'Entrega no site':'Nenhuma atividade confirmada';
  if(heartbeatFresh&&heartbeat)lastOrigin='Registro do agente no Supabase';
 
  const mission=missionFor(id,runs,nextAt,queue,now,jobs);
@@ -180,15 +180,16 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  const checkedAt=new Date().toISOString(),now=Date.parse(checkedAt);
  const db=getSupabase();
  const [n,m,w,git]=await Promise.all([
-  db.from('news_articles').select('id,slug,headline,category,updated_at').eq('status','published').order('updated_at',{ascending:false}).limit(15),
+  db.from('news_articles').select('id,slug,headline,category,updated_at,published_at,generated_by_ai').eq('status','published').order('published_at',{ascending:false}).limit(15),
   db.from('matches').select('id,home_team,away_team,league,updated_at').eq('is_published',true).order('updated_at',{ascending:false}).limit(15),
   db.from('watch_titles').select('id,title,kind,platform,updated_at,editorial_body,source_url').eq('is_published',true).order('updated_at',{ascending:false}).limit(60),
   getGitHubOffice()
  ]);
  const news=(n.data||[]) as NewsRow[],matches=(m.data||[]) as MatchRow[],titles=(w.data||[]) as WatchRow[];
  const publications:Delivery[]=[
-  ...news.map(x=>({id:'n-'+x.id,agentId:'noticias' as const,title:x.headline,detail:x.category||'Notícia',
-   time:x.updated_at,href:'/noticias/'+encodeURIComponent(x.slug),origin:'published' as const})),
+  ...news.map(x=>({id:'n-'+x.id,agentId:(x.generated_by_ai?'seo':'noticias') as AgentId,
+   title:'Matéria publicada: '+x.headline,detail:x.category||'Notícia',
+   time:x.published_at,href:'/noticias/'+encodeURIComponent(x.slug),origin:'published' as const})),
   ...matches.map(x=>({id:'m-'+x.id,agentId:'futebol' as const,title:x.home_team+' × '+x.away_team,
    detail:x.league,time:x.updated_at,href:'/futebol',origin:'published' as const})),
   ...titles.map(x=>{
@@ -200,7 +201,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
     time:x.updated_at,href:'/filmes-series',origin:indexed?'published' as const:'catalog' as const};
   })
  ];
- const deliveries=[...publications,...git.deliveries]
+ const deliveries=[...publications]
   .filter(x=>x.time&&!Number.isNaN(Date.parse(x.time)))
   .sort((a,b)=>Date.parse(b.time)-Date.parse(a.time)).slice(0,90);
 
