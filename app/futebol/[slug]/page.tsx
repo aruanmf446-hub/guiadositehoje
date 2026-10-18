@@ -5,6 +5,7 @@ import { getGameBySlug } from '@/lib/football';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { siteName, siteUrl } from '@/lib/seo';
+import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 
 type Props={params:Promise<{slug:string}>};
 export const revalidate=300;
@@ -76,6 +77,11 @@ export default async function FootballMatchPage({params}:Props){
         <span className="kicker">{game.league}</span>
         <h1>{game.home} x {game.away}</h1>
         <p className="article-summary">Data, horário e transmissão no Brasil</p>
+        <figure className="article-figure editorial-figure football-figure">
+         <img src={editorialCover('futebol',game.home+' x '+game.away)}
+          alt={'Capa editorial do confronto '+game.home+' contra '+game.away}/>
+         <figcaption>{editorialCoverCredit} · Não representa escudos oficiais nem fotografia do evento.</figcaption>
+        </figure>
         <div className="football-details">
           <p><strong>Data e hora:</strong> <time dateTime={game.kickoffAt}>{dateText(game.kickoffAt)} (horário de Brasília)</time></p>
           <p><strong>Campeonato:</strong> {game.league}</p>
