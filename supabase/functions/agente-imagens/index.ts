@@ -41,45 +41,64 @@ async function tvmaze(item:Row):Promise<Asset|null>{
   alt:'Imagem de divulgação da produção '+String(show.name)};
 }
 async function commons(title:string,kind:'noticia'|'midia'):Promise<Asset|null>{
- const terms=words(title).slice(0,kind==='noticia'?7:8);
+ const lower=normalize(title);
+ // Buscas temáticas verificáveis. Foto documental de banco aberto é identificada
+ // como ILUSTRATIVA; nunca fazemos passar por registro do fato noticiado.
+ let search=kind==='midia'?'"'+title.replace(/"/g,'').slice(0,90)+'"':'';
+ let terms=words(title).slice(0,6);
+ if(kind==='noticia'){
+  if(/elefant|namibia|namibia/.test(lower)){
+   search='Namibia desert elephant';terms=['desert','elephant'];
+  }else if(/\bnhs\b|\bsus\b/.test(lower)){
+   search='NHS hospital United Kingdom';terms=['nhs','hospital'];
+  }else if(/oculos|glasses|ray ban/.test(lower)){
+   search='Meta smart glasses';terms=['meta','glasses'];
+  }else if(/sergio zimerman/.test(lower)){
+   search='"Sergio Zimerman"';terms=['sergio','zimerman'];
+  }else if(/alagamento|deslizamento|chuva/.test(lower)){
+   search='Sao Paulo flood Brazil';terms=['flood','paulo'];
+  }else{
+   // Sem correspondência clara, não associar foto genérica ao fato específico.
+   return null;
+  }
+ }
  if(terms.length<2)return null;
- // Busca conservadora: não associar fotografia de outro evento ou produção.
- const search=kind==='midia'?'"'+title.slice(0,100).replace(/"/g,'')+'"':
-  terms.slice(0,5).join(' ');
  const query=new URLSearchParams({action:'query',format:'json',generator:'search',
-  gsrsearch:search,gsrnamespace:'6',gsrlimit:'8',prop:'imageinfo',
-  iiprop:'url|extmetadata',iiurlwidth:'1000'});
+  gsrsearch:search,gsrnamespace:'6',gsrlimit:'12',prop:'imageinfo',
+  iiprop:'url|mime|extmetadata',iiurlwidth:'1000'});
  const res=await fetch('https://commons.wikimedia.org/w/api.php?'+query.toString(),{
-  headers:{Accept:'application/json','User-Agent':'GuiaDeHojeEditorial/1.0 (https://guiadehoje.site)'},
+  headers:{Accept:'application/json','User-Agent':'GuiaDeHojeEditorial/1.1 (+https://guiadehoje.site)'},
   signal:AbortSignal.timeout(14000)});
  if(!res.ok)throw Error('Wikimedia HTTP '+res.status);
  const result:Row=await res.json();
  const pages:Row[]=Object.values(result.query?.pages||{});
  for(const page of pages){
-  const info=page.imageinfo?.[0];
-  if(!info)continue;
+  const info=page.imageinfo?.[0];if(!info)continue;
   const metadata=info.extmetadata||{};
-  const license=String(metadata.LicenseShortName?.value||'').trim();
-  // Apenas licenças reutilizáveis explicitamente reconhecidas.
+  const license=strip(String(metadata.LicenseShortName?.value||'')).trim();
   if(!/^(CC0|CC BY(?:-SA)?(?: [1-4]\.0)?|Public domain|PD-)/i.test(license)
    ||/\b(?:NC|ND)\b/i.test(license))continue;
-  const mime=String(info.mime||'');
   const url=String(info.thumburl||info.url||'');
-  if(!/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\//.test(url)||
-    !/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(url))continue;
+  if(!/^https:\/\/(?:thumb|upload)\.wikimedia\.org\/wikipedia\/commons\//.test(url)||
+     !/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(url))continue;
   const fileName=String(page.title||'').replace(/^File:/i,'').replace(/[_-]/g,' ');
   const matched=new Set(words(fileName));
+  // Não aceitar foto sem correspondência mínima do assunto.
   const hits=terms.filter(t=>matched.has(t)).length;
-  if(hits<Math.min(3,terms.length))continue;
+  if(hits<2)continue;
   const pageUrl=String(info.descriptionurl||'');
   if(!pageUrl.startsWith('https://commons.wikimedia.org/wiki/File:'))continue;
-  const artist=strip(String(metadata.Artist?.value||'')).slice(0,100);
-  const attribution=artist||'autor informado no Wikimedia Commons';
-  return {url,alt:'Imagem relacionada a '+title.slice(0,130),
-   credit:'Imagem: '+attribution+' / Wikimedia Commons ('+license+')',creditUrl:pageUrl};
+  const artist=strip(String(metadata.Artist?.value||'')).slice(0,120).trim();
+  if(!artist)continue;
+  return {url,alt:kind==='noticia'?
+   'Fotografia ilustrativa relacionada ao assunto; não documenta o acontecimento específico.':
+   'Fotografia documental relacionada à produção; não é cartaz oficial.',
+   credit:'Foto ilustrativa: '+artist+' / Wikimedia Commons ('+license+')',
+   creditUrl:pageUrl};
  }
  return null;
 }
+
 // Cada nova publicação pode solicitar sua imagem imediatamente. A fila no banco
 // permite recuperação, claim exclusivo e processamento idempotente.
 type Kind='noticia'|'midia'|'jogo';
