@@ -736,3 +736,22 @@ html {scroll-padding-top:104px;}
  .media-detail-visual.has-image img{min-height:185px;max-height:420px}
  .magazine-cover figcaption,.cover-caption,.media-cover-credit{font-size:9px!important}
 }
+
+
+/* Capas também na listagem de jogos, de notícias e no arquivo de matérias. */
+.football-tile-cover,.archive-news-cover{position:relative;margin:0 0 15px;background:#162b2e;overflow:hidden;border-radius:9px}
+.football-tile-cover img,.archive-news-cover img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.football-tile-cover figcaption,.archive-news-cover figcaption{
+ position:absolute;left:0;right:0;bottom:0;padding:14px 9px 7px;
+ background:linear-gradient(transparent,#000b);color:white;font:600 10px/1.3 var(--font-body),sans-serif;
+}
+.news-index-cover{display:block;width:min(210px,100%);aspect-ratio:16/9;object-fit:cover;
+ border-radius:8px;margin:0 0 12px}
+.game-paper-cover{display:block;width:35px;height:22px;object-fit:cover;border-radius:4px;margin-top:5px}
+.game-paper-number{align-self:center;min-width:35px}
+.archive-feature .archive-news-cover{max-width:900px}
+@media(max-width:700px){
+ .game-paper-cover{width:28px;height:18px}
+ .news-index-cover{width:130px}
+ .archive-news-cover figcaption,.football-tile-cover figcaption{font-size:9px}
+}
