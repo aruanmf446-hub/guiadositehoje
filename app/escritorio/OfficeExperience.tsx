@@ -91,7 +91,9 @@ function Deliveries({items,emptyLabel}:{items:Delivery[];emptyLabel:string}){
  {items.length===0?<div className="office-empty"><span>✳</span><strong>Nenhuma entrega por aqui.</strong><p>{emptyLabel}</p></div>:
  items.map(item=><a className="office-delivery" key={item.id} href={item.href} target="_blank" rel="noreferrer">
   <span className={'delivery-icon delivery-'+item.agentId}>{item.origin==='github'?'⌘':item.agentId==='futebol'?'⚽':item.agentId==='noticias'?'✎':item.agentId==='filmes'?'◩':'▷'}</span>
-  <span className="delivery-copy"><strong>{item.title}</strong><small>{item.origin==='github'?'GitHub · alteração de código':idLabels[item.agentId]+' · publicação'} · {clock(item.time)}</small></span>
+  <span className="delivery-copy"><strong>{item.title}</strong><small>{item.origin==='github'?'GitHub · alteração de código':
+   item.origin==='catalog'?'Catálogo atualizado · SEO em preparação':
+   idLabels[item.agentId]+' · publicação editorial'} · {clock(item.time)}</small></span>
   <span className="delivery-arrow" aria-hidden="true">↗</span>
  </a>)}
  </div>;
