@@ -214,7 +214,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna,backfill]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written,query_date,league_id,error_text').order('requested_at',{ascending:false}).limit(80),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count,error_message').order('requested_at',{ascending:false}).limit(35),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
@@ -224,7 +224,8 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    admin.from('news_articles').select('id,headline').eq('status','draft').limit(150),
    admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20),
    admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8),
-   admin.from('luna_editorial_runs').select('title_id,slot_key,state,started_at,finished_at,word_count,detail').order('started_at',{ascending:false}).limit(15)
+   admin.from('luna_editorial_runs').select('title_id,slot_key,state,started_at,finished_at,word_count,detail').order('started_at',{ascending:false}).limit(15),
+   admin.from('news_backfill_publications').select('article_id,state,attempts,detail,last_attempt_at,finished_at,word_count').order('last_attempt_at',{ascending:false}).limit(25)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
   if(!fixture.error)for(const x of fixture.data||[]){
@@ -260,6 +261,15 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    for(const x of schedule.data as Job[])if(x&&typeof x.jobname==='string')jobs.push(x);
   }
   if(!activity.error)for(const row of (activity.data||[]) as Heartbeat[])heartbeats.push(row);
+  if(!backfill.error)for(const x of backfill.data||[]){
+   const status=x.state==='published'?'published':
+    x.state==='error'?'error':x.state==='running'?'running':'needs_review';
+   runs.push({agentId:'seo',time:x.last_attempt_at,doneAt:x.finished_at,
+    status,count:x.state==='published'?x.word_count||0:0,
+    subject:x.state==='published'?'Publicar notícia recuperada com fonte verificada':
+     'Recuperar rascunho: tentativa '+x.attempts,
+    error:x.state==='published'?null:x.detail||null});
+  }
   if(!luna.error)for(const x of luna.data||[]){
    const status=x.state==='published'?'ok':
     x.state==='error'?'error':x.state==='running'?'running':'needs_review';
