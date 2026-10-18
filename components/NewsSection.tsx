@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type {NewsItem} from '@/lib/data';
+import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 
 const date=(iso:string)=>new Intl.DateTimeFormat('pt-BR',{
   day:'numeric',month:'short',timeZone:'America/Sao_Paulo'
@@ -17,6 +18,11 @@ export function NewsSection({news}:{news:NewsItem[]}){
     {!featured?<div className="no-games">A redação está preparando as próximas matérias.</div>:
     <div className="news-magazine">
       <article className="magazine-lead">
+        <figure className="magazine-cover">
+         <img src={featured.imageUrl||editorialCover('noticia',featured.headline)}
+          alt={featured.imageAlt||'Capa ilustrativa de '+featured.headline} loading="lazy"/>
+         <figcaption>{featured.imageUrl?featured.imageCredit||'Imagem: fonte consultada':editorialCoverCredit}</figcaption>
+        </figure>
         <div className="magazine-lead-meta"><span>EM DESTAQUE</span> / {featured.category} · {date(featured.publishedAt)}</div>
         <h3><Link href={'/noticias/'+featured.slug}>{featured.headline}</Link></h3>
         <p>{featured.summary}</p>
@@ -28,7 +34,9 @@ export function NewsSection({news}:{news:NewsItem[]}){
         <div className="magazine-feed-title">MAIS DO DIA <span>{String(others.length).padStart(2,'0')}</span></div>
         {others.slice(0,4).map((a,i)=><article key={a.id} className="magazine-brief">
           <span className="brief-number">{String(i+2).padStart(2,'0')}</span>
-          <div><span className="story-kicker">{a.category} · {date(a.publishedAt)}</span>
+          <div><img className="news-list-cover" src={a.imageUrl||editorialCover('noticia',a.headline)}
+           alt={a.imageAlt||'Capa editorial de '+a.headline} loading="lazy"/>
+           <span className="story-kicker">{a.category} · {date(a.publishedAt)}</span>
             <h3><Link href={'/noticias/'+a.slug}>{a.headline}</Link></h3>
             <p>{a.summary}</p>
           </div>
