@@ -3,20 +3,20 @@ import {useState} from 'react';
 import Link from 'next/link';
 import type {WatchTitle,WatchKind} from '@/lib/data';
 import {mediaHref,mediaImage} from '@/lib/media';
-import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 function Cover({item,className=''}:{item:WatchTitle;className?:string}){
  const url=mediaImage(item);
- return <figure className={'film-cover film-cover-real '+className}
-   aria-label={'Imagem de '+item.title}>
-  <img src={url||editorialCover(item.kind==='Filmes'?'filme':'serie',item.title)}
-    alt={url?'Imagem de '+item.title:'Capa editorial ilustrativa de '+item.title} loading="lazy"/>
-  <figcaption className="cover-caption">{url?
-   item.posterCredit||'Imagem disponibilizada pela fonte':editorialCoverCredit}</figcaption>
+ if(!url)return <div className={'media-no-photo '+className}><span>Imagem oficial não disponível</span></div>;
+ return <figure className={'film-cover film-cover-real '+className} aria-label={'Fotografia de '+item.title}>
+  <img src={url} alt={'Imagem da produção '+item.title} loading="lazy"/>
+  <figcaption className="cover-caption">{item.posterCreditUrl?
+   <a href={item.posterCreditUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>
+    {item.posterCredit||'Crédito da imagem'} ↗</a>:
+   item.posterCredit||'Imagem disponibilizada pela fonte'}</figcaption>
  </figure>;
 }
 export function WatchSection({titles}:{titles:WatchTitle[]}){
  const [kind,setKind]=useState<WatchKind>('Filmes');
- const items=titles.filter(t=>t.kind===kind);
+ const items=titles.filter(t=>t.kind===kind).sort((a,b)=>Number(Boolean(mediaImage(b)))-Number(Boolean(mediaImage(a))));
  const [featured,...others]=items;
  return <section id="assistir" className="home-section watch-edit-section" aria-labelledby="watch-heading">
   <div className="editorial-section-head">
