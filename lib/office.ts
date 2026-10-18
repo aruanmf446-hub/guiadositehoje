@@ -12,6 +12,7 @@ type Run={agentId:AgentId;time:string;doneAt:string|null;status:string;count:num
 type Job={jobname:string;schedule:string;active:boolean;last_run:string|null;last_status:string|null};
 type DesignAudit={run_id:number;status:string;started_at:string;finished_at:string|null;report:string|null;artifact_url:string|null;error_message:string|null;observations:unknown};
 type Heartbeat={agent_id:string;status:'working'|'waiting'|'completed'|'error';task:string;next_task:string|null;updated_at:string;expires_at:string|null;evidence_url:string|null};
+type AgentHealth={agent_id:string;slot_key:string;phase:string;status:string;detail:string;checked_at:string};
 
 const recent=(time:string|null|undefined,minutes:number,now:number)=>
  Boolean(time&&!Number.isNaN(Date.parse(time))&&now-Date.parse(time)>=-60000&&now-Date.parse(time)<minutes*60000);
@@ -221,13 +222,14 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
 
  const runs:Run[]=[],jobs:Job[]=[],designAudits:DesignAudit[]=[];
  let telemetry=false,queue=0;
+ const agentHealth:AgentHealth[]=[];
  const heartbeats:Heartbeat[]=[];
  // A telemetria privilegiada é habilitada apenas atrás da autenticação do escritório.
  const secret=process.env.OFFICE_PASSWORD?process.env.SUPABASE_SERVICE_ROLE_KEY:undefined;
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna,backfill]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna,backfill,health]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written,query_date,league_id,error_text').order('requested_at',{ascending:false}).limit(80),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count,error_message').order('requested_at',{ascending:false}).limit(35),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
@@ -238,9 +240,11 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20),
    admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8),
    admin.from('luna_editorial_runs').select('title_id,slot_key,state,started_at,finished_at,word_count,detail').order('started_at',{ascending:false}).limit(15),
-   admin.from('news_backfill_publications').select('article_id,state,attempts,detail,last_attempt_at,finished_at,word_count').order('last_attempt_at',{ascending:false}).limit(25)
+   admin.from('news_backfill_publications').select('article_id,state,attempts,detail,last_attempt_at,finished_at,word_count').order('last_attempt_at',{ascending:false}).limit(25),
+   admin.from('office_agent_health').select('agent_id,slot_key,phase,status,detail,checked_at').order('checked_at',{ascending:false}).limit(40)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
+  if(!health.error)for(const h of health.data||[])agentHealth.push(h as AgentHealth);
   if(!fixture.error)for(const x of fixture.data||[]){
    runs.push({agentId:'futebol',time:x.requested_at,doneAt:x.processed_at,status:x.status,count:x.items_written||0,
    subject:x.query_date?'Conferindo jogos de '+x.query_date+(x.league_id?' (liga '+x.league_id+')':''):'Agenda do futebol',
@@ -331,7 +335,25 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  const failures=[n.error,m.error,w.error].filter(Boolean);
  const lastNewsTime=news[0]?.published_at?Date.parse(news[0].published_at):NaN;
  const editorialDelayed=Number.isNaN(lastNewsTime)||now-lastNewsTime>24*60*60*1000;
+ // Somente o relatório MAIS RECENTE por agente/fase: não ressuscitar alertas
+ // de turnos antigos quando uma recuperação posterior foi concluída.
+ const checked=new Set<string>();
+ const healthWarnings:string[]=[];
+ for(const row of agentHealth){
+  if(!recent(row.checked_at,26*60,now))continue;
+  const key=row.agent_id+'/'+row.phase;
+  if(checked.has(key))continue;
+  checked.add(key);
+  if(['missed','retrying','not_published','needs_review','error'].includes(row.status)){
+   const name=({futebol:'Bento',noticias:'Nina',filmes:'Theo',series:'Luna',
+    seo:'Otto',design:'Milly'} as Record<string,string>)[row.agent_id]||row.agent_id;
+   healthWarnings.push(name+' ('+row.phase+'): '+row.status.replaceAll('_',' '));
+  }
+ }
  const notice=failures.length?'Algumas publicações não puderam ser consultadas.':
+  healthWarnings.length?
+   'ALERTA DE AGENTES: '+healthWarnings.slice(0,3).join('; ')+
+    '. O sistema registrou o problema e executa recuperação limitada por turno.':
   editorialDelayed&&queue>0?
    'ALERTA EDITORIAL: nenhuma notícia nova foi publicada nas últimas 24 horas. Há '+queue+
    ' pauta(s) com fonte esperando a redação. Coleta concluída não é publicação.':null;
