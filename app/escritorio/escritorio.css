@@ -1159,3 +1159,46 @@
   width:8px!important;height:7px!important;
  }
 }
+
+
+/* Sétima estação: Íris usa um espaço autônomo na borda inferior do escritório.
+   A ilustração de fundo original contém apenas seis mesas; não sobrepor colegas. */
+.office-scene .office-station:nth-child(7){
+ left:36%!important;top:83.8%!important;width:28%!important;height:14%!important;
+ border:2px solid #d5c7b4!important;border-radius:15px!important;
+ background:rgba(255,253,246,.97)!important;box-shadow:0 6px 14px #60422d24!important;
+ z-index:8!important;overflow:hidden!important;
+}
+.office-scene .office-station:nth-child(7) .station-sprite{
+ display:block!important;position:absolute;left:7%!important;top:11%!important;
+ width:29%!important;height:63%!important;z-index:3!important;
+ transform:none!important;filter:none!important;
+}
+.office-scene .office-station:nth-child(7) .station-bubble{
+ top:9%!important;right:4%!important;width:56%!important;height:33%!important;
+ font-size:clamp(7px,.85vw,11px)!important;border:1px solid #a8c7d0!important;
+ box-shadow:none!important;padding:3px!important;
+}
+.office-scene .office-station:nth-child(7) .station-bubble::after{display:none!important}
+.office-scene .office-station:nth-child(7) .station-nameplate{
+ left:34%!important;right:3%!important;bottom:7%!important;height:40%!important;
+ border:0!important;background:transparent!important;box-shadow:none!important;
+ padding:1px!important;align-items:flex-start;z-index:4!important
+}
+.office-scene .office-station:nth-child(7) .station-nameplate strong{
+ font-size:clamp(11px,1.5vw,16px)!important
+}
+.office-scene .office-station:nth-child(7) .station-nameplate small{
+ font-size:clamp(8px,.9vw,11px)!important;text-align:left
+}
+@media(max-width:700px){
+ .office-scene .office-station:nth-child(7){
+  left:29%!important;width:42%!important;top:83%!important;height:15%!important;
+  border-radius:10px!important
+ }
+ .office-scene .office-station:nth-child(7) .station-bubble{
+  font-size:7px!important;right:2%!important;width:56%!important;height:32%!important
+ }
+ .office-scene .office-station:nth-child(7) .station-nameplate strong{font-size:10px!important}
+ .office-scene .office-station:nth-child(7) .station-nameplate small{font-size:7px!important}
+}
