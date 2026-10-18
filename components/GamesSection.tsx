@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type {Game} from '@/lib/data';
+import {editorialCover} from '@/lib/capas';
 export function GamesSection({games}:{games:Game[]}){
  return <section id="jogos" className="home-section games-section games-editorial" aria-labelledby="games-heading">
   <div className="editorial-section-head">
@@ -17,7 +18,7 @@ export function GamesSection({games}:{games:Game[]}){
    <div className="game-paper-top"><span>GUIA DE HOJE · AGENDA DO FUTEBOL</span>
     <span>{String(games.length).padStart(2,'0')} {games.length===1?'JOGO':'JOGOS'} NA AGENDA</span></div>
    {games.slice(0,12).map((g,i)=><Link key={g.id} className="game-paper-row" href={g.slug?'/futebol/'+g.slug:'/futebol'}>
-    <span className="game-paper-number">{String(i+1).padStart(2,'0')}</span>
+    <span className="game-paper-number">{String(i+1).padStart(2,'0')}<img className="game-paper-cover" src={editorialCover('futebol',g.home+' x '+g.away)} alt="" loading="lazy"/></span>
     <span className="game-paper-when"><small>{g.league}</small><strong>{g.live?'AO VIVO':g.time}</strong></span>
     <span className="game-paper-versus"><span>{g.home}</span>
      <b aria-label="contra">×</b><span>{g.away}</span></span>
