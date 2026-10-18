@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {getWatchTitles} from '@/lib/content';
 import {mediaSlug,mediaHref,mediaHasEditorial,mediaImage} from '@/lib/media';
-import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 import {siteUrl,siteName} from '@/lib/seo';
 import {SiteHeader} from '@/components/SiteHeader';
 import {SiteFooter} from '@/components/SiteFooter';
@@ -64,15 +63,12 @@ export default async function MediaDetail({params}:Props){
      </div></div>
      <a href="#sobre" className="media-detail-anchor">Conheça esta produção <span aria-hidden="true">↓</span></a>
     </div>
-    <figure className="media-detail-visual has-image">
-     <img src={image||editorialCover(isSeries?'serie':'filme',item.title)}
-       alt={image?'Imagem de '+item.title:'Capa ilustrativa de '+item.title}/>
-     <figcaption className="visual-credit">{image?
-      (item.posterCreditUrl?.startsWith('https://')?
+    {image?<figure className="media-detail-visual has-image">
+     <img src={image} alt={'Imagem da produção '+item.title}/>
+     <figcaption className="visual-credit">{item.posterCreditUrl?.startsWith('https://')?
        <a href={item.posterCreditUrl} target="_blank" rel="noopener noreferrer">{item.posterCredit||'Crédito da imagem'} ↗</a>:
-       item.posterCredit||'Imagem disponibilizada pela fonte'):
-      editorialCoverCredit}</figcaption>
-    </figure>
+       item.posterCredit||'Imagem disponibilizada pela fonte'}</figcaption>
+    </figure>:<div className="media-detail-visual media-no-photo"><span>Imagem oficial não disponível</span></div>}
    </header>
    <div className="media-detail-layout">
     <article className="media-detail-article" id="sobre">
