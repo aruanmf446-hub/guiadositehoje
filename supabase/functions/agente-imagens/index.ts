@@ -50,7 +50,7 @@ async function commons(title:string,kind:'noticia'|'midia'):Promise<Asset|null>{
   if(/elefant|namibia|namibia/.test(lower)){
    search='Namibia desert elephant';terms=['desert','elephant'];
   }else if(/\bnhs\b|\bsus\b/.test(lower)){
-   search='NHS hospital United Kingdom';terms=['nhs','hospital'];
+   search='NHS hospital';terms=['nhs','hospital'];
   }else if(/oculos|glasses|ray ban/.test(lower)){
    search='Meta smart glasses';terms=['meta','glasses'];
   }else if(/sergio zimerman/.test(lower)){
