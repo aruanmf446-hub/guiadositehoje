@@ -4,7 +4,6 @@ import {SiteFooter} from '@/components/SiteFooter';
 import {SiteHeader} from '@/components/SiteHeader';
 import {getPublishedNews} from '@/lib/content';
 import type {NewsItem} from '@/lib/data';
-import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 export const revalidate=120;
 export const metadata:Metadata={
  title:'Notícias e análises do Brasil e do mundo',
@@ -16,8 +15,12 @@ const date=(iso:string)=>new Intl.DateTimeFormat('pt-BR',{
 }).format(new Date(iso));
 function Lead({item}:{item:NewsItem}){
  return <article className="archive-feature">
-  <figure className="archive-news-cover"><img src={item.imageUrl||editorialCover('noticia',item.headline)}
-   alt={item.imageAlt||'Capa de '+item.headline}/><figcaption>{item.imageUrl?item.imageCredit||'Imagem: fonte consultada':editorialCoverCredit}</figcaption></figure>
+  {item.imageUrl&&<figure className="archive-news-cover">
+   <img src={item.imageUrl} alt={item.imageAlt||'Fotografia da notícia'}/>
+   <figcaption>{item.imageCreditUrl?
+    <a href={item.imageCreditUrl} target="_blank" rel="noopener noreferrer">{item.imageCredit||'Crédito da fotografia'} ↗</a>:
+    item.imageCredit||'Crédito da fonte'}</figcaption>
+  </figure>}
   <div className="archive-feature-top">EM DESTAQUE <span>·</span> {item.category}</div>
   <h2><Link href={'/noticias/'+item.slug}>{item.headline}</Link></h2>
   <p>{item.summary}</p>
@@ -39,10 +42,19 @@ export default async function NewsArchivePage(){
     <div className="news-index-title"><h2>Outras notícias</h2><span>Arquivo editorial</span></div>
     {others.map((item,i)=><article className="news-index-row" key={item.id}>
       <span className="index-number">{String(i+2).padStart(2,'0')}</span>
-      <div className="index-copy"><img className="news-index-cover" src={item.imageUrl||editorialCover('noticia',item.headline)} alt={item.imageAlt||'Capa de '+item.headline} loading="lazy"/>
-       <span className="story-kicker">{item.category} · {date(item.publishedAt)}</span>
+      <div className={'index-copy'+(item.imageUrl?' index-with-photo':'')}>
+       {item.imageUrl&&<figure className="news-index-figure">
+        <img src={item.imageUrl} alt={item.imageAlt||'Fotografia relacionada à notícia'} loading="lazy"/>
+        <figcaption>{item.imageCreditUrl?
+         <a href={item.imageCreditUrl} target="_blank" rel="noopener noreferrer">{item.imageCredit||'Crédito da foto'} ↗</a>:
+         item.imageCredit||'Crédito da fonte'}</figcaption>
+       </figure>}
+       <div className="news-index-text">
+        <span className="story-kicker">{item.category} · {date(item.publishedAt)}</span>
         <h3><Link href={'/noticias/'+item.slug}>{item.headline}</Link></h3>
-        <p>{item.summary}</p></div>
+        <p>{item.summary}</p>
+       </div>
+      </div>
       <Link href={'/noticias/'+item.slug} aria-label={'Ler '+item.headline} className="index-arrow">↗</Link>
     </article>)}
    </section></>:<p className="archive-empty">Novas matérias estão sendo preparadas pela redação.</p>}
