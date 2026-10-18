@@ -9,7 +9,7 @@ export const profiles=[
 ] as const;
 export type AgentId=typeof profiles[number]['id'];
 export type AgentState='working'|'recent'|'waiting'|'error'|'unconnected';
-export type Delivery={id:string;agentId:AgentId;title:string;detail:string;time:string;href:string;origin?:'github'|'published'};
+export type Delivery={id:string;agentId:AgentId;title:string;detail:string;time:string;href:string;origin?:'github'|'published'|'catalog'};
 export type GitHubSummary={
  connected:boolean;
  lastCommit:{title:string;time:string;href:string}|null;
