@@ -20,12 +20,13 @@ const newer=(a:string|null,b:string|null)=>!a?b:!b?a:Date.parse(a)>=Date.parse(b
 const jobName:Record<AgentId,string>={
  futebol:'guia-de-hoje-coletor-sql',noticias:'guia-de-hoje-editorial',
  filmes:'guia-de-hoje-editorial',series:'guia-de-hoje-luna-editorial',
- seo:'guia-de-hoje-redator-seo',design:'milly-semanal'
+ seo:'guia-de-hoje-redator-seo',design:'milly-semanal',imagens:'guia-de-hoje-imagens'
 };
 const taskName:Record<AgentId,string>={
  futebol:'Próxima checagem do coletor',noticias:'Próxima checagem editorial',
  filmes:'Próxima checagem editorial',series:'Próxima publicação SEO da Luna',
- seo:'Próxima tentativa do redator SEO',design:'Próxima auditoria visual semanal'
+ seo:'Próxima tentativa do redator SEO',design:'Próxima auditoria visual semanal',
+ imagens:'Próxima busca de imagens e créditos'
 };
 function cronMatches(token:string,n:number){
  if(token==='*')return true;
@@ -51,7 +52,8 @@ const focusFor:Record<AgentId,string>={
  filmes:'Pesquisar fichas de filmes e organizar referências para o catálogo',
  series:'Conferir a programação de séries e atualizar informações disponíveis',
  seo:'Selecionar pautas, gerar matéria com IA e validar texto antes da publicação',
- design:'Revisar capturas reais do site e sugerir melhorias de UX/UI'
+ design:'Revisar capturas reais do site e sugerir melhorias de UX/UI',
+ imagens:'Buscar imagens com licença reutilizável e registrar autor e fonte; manter capa editorial segura como alternativa'
 };
 function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:number,jobs:Job[]):OfficeMission{
  const sorted=[...runs].sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
@@ -74,14 +76,14 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
  const nextTime=nextAt?label(nextAt):'a definir';
  const stageJob=jobs.find(j=>j.jobname===(id==='futebol'?
    'guia-de-hoje-coletor-processar':'guia-de-hoje-editorial-processar'));
- const processAt=id==='seo'?null:hasRequests&&stageJob?.active?
+ const processAt=(id==='seo'||id==='imagens')?null:hasRequests&&stageJob?.active?
    nextCron(stageJob.schedule,Date.parse(first.time)):null;
  const processNote=processAt?
    'Próxima etapa marcada para '+label(processAt)+' (Brasília)':
    'Aguardando processamento registrado';
  const title=id==='design'?'Revisão visual semanal da Milly':id==='futebol'?'Rodada de atualização do futebol':
   id==='noticias'?'Rodada de pesquisa editorial':id==='filmes'?'Pesquisa de filmes':
-  id==='series'?'Pesquisa de séries':'Produção editorial com IA';
+  id==='series'?'Pesquisa de séries':id==='imagens'?'Busca de imagens e créditos':'Produção editorial com IA';
  const workDescription=active?(id==='seo'?'Texto em processamento pelo redator':
    'Consultas externas enviadas; aguardando retorno real'):
    hasRequests?(failed.length?'Algumas solicitações falharam; verifique a próxima rodada':
@@ -229,7 +231,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna,backfill,health]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna,backfill,health,imageRuns]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written,query_date,league_id,error_text').order('requested_at',{ascending:false}).limit(80),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count,error_message').order('requested_at',{ascending:false}).limit(35),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
@@ -241,10 +243,26 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8),
    admin.from('luna_editorial_runs').select('title_id,slot_key,state,started_at,finished_at,word_count,detail').order('started_at',{ascending:false}).limit(15),
    admin.from('news_backfill_publications').select('article_id,state,attempts,detail,last_attempt_at,finished_at,word_count').order('last_attempt_at',{ascending:false}).limit(25),
-   admin.from('office_agent_health').select('agent_id,slot_key,phase,status,detail,checked_at').order('checked_at',{ascending:false}).limit(40)
+   admin.from('office_agent_health').select('agent_id,slot_key,phase,status,detail,checked_at').order('checked_at',{ascending:false}).limit(40),
+   admin.from('agent_image_runs').select('kind,item_id,title,status,attempts,attempted_at,credit').order('attempted_at',{ascending:false}).limit(50)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
   if(!health.error)for(const h of health.data||[])agentHealth.push(h as AgentHealth);
+  if(!imageRuns.error)for(const x of imageRuns.data||[]){
+   const completed=x.status==='done'||x.status==='not_found';
+   runs.push({agentId:'imagens',time:x.attempted_at,doneAt:completed?x.attempted_at:null,
+    status:x.status==='done'||x.status==='not_found'?'ok':
+     x.status==='error'?'error':'pending',
+    count:x.status==='done'?1:0,
+    subject:x.status==='not_found'?'Sem imagem licenciada; usar capa editorial: '+x.title:
+     'Verificar imagem e direitos: '+x.title});
+   if(x.status==='done')deliveries.push({
+    id:'image-'+x.kind+'-'+x.item_id,agentId:'imagens',
+    title:'Imagem e crédito validados: '+x.title,detail:x.credit||'Crédito registrado',
+    time:x.attempted_at,href:x.kind==='noticia'?'/noticias':'/filmes-series',origin:'catalog'
+   });
+  }
+  deliveries.sort((a,b)=>Date.parse(b.time)-Date.parse(a.time));
   if(!fixture.error)for(const x of fixture.data||[]){
    runs.push({agentId:'futebol',time:x.requested_at,doneAt:x.processed_at,status:x.status,count:x.items_written||0,
    subject:x.query_date?'Conferindo jogos de '+x.query_date+(x.league_id?' (liga '+x.league_id+')':''):'Agenda do futebol',
@@ -346,7 +364,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   checked.add(key);
   if(['missed','retrying','not_published','needs_review','error'].includes(row.status)){
    const name=({futebol:'Bento',noticias:'Nina',filmes:'Theo',series:'Luna',
-    seo:'Otto',design:'Milly'} as Record<string,string>)[row.agent_id]||row.agent_id;
+    seo:'Otto',design:'Milly',imagens:'Íris'} as Record<string,string>)[row.agent_id]||row.agent_id;
    healthWarnings.push(name+' ('+row.phase+'): '+row.status.replaceAll('_',' '));
   }
  }
