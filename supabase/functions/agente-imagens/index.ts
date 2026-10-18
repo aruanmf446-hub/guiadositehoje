@@ -80,6 +80,11 @@ async function commons(title:string,kind:'noticia'|'midia'):Promise<Asset|null>{
  }
  return null;
 }
+// Cada nova publicação pode solicitar sua imagem imediatamente. A fila no banco
+// permite recuperação, claim exclusivo e processamento idempotente.
+type Kind='noticia'|'midia'|'jogo';
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const restId=(kind:Kind,id:string)=>'agent_image_runs?kind=eq.'+kind+'&item_id=eq.'+id;
 Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'method_not_allowed'},405);
  let db:ReturnType<typeof dbClient>;
@@ -89,53 +94,130 @@ Deno.serve(async req=>{
   const secret=req.headers.get('x-image-cron')||'';
   if(!secret||!cfg.length||cfg[0].token!==secret)return json({error:'unauthorized'},401);
  }catch{return json({error:'auth_unavailable'},503);}
+ const payload:Row=await req.json().catch(()=>({}));
+ const eventKind=String(payload.kind||''),eventId=String(payload.item_id||'');
+ const targeted=Boolean(eventKind||eventId);
+ if(targeted&&(!['noticia','midia','jogo'].includes(eventKind)||!uuid.test(eventId)))
+  return json({error:'invalid_target'},400);
  try{
-  const [news,media,old]:[Row[],Row[],Row[]]=await Promise.all([
-   db('news_articles?select=id,headline,category&status=eq.published&image_url=is.null&order=published_at.desc&limit=12'),
-   db('watch_titles?select=id,title,kind,external_ref,source_url&is_published=eq.true&poster_url=is.null&order=updated_at.desc&limit=18'),
-   db('agent_image_runs?select=kind,item_id,status,attempts,attempted_at&order=attempted_at.desc&limit=400')
-  ]);
-  let checked=0,done=0,notFound=0,failed=0;
-  for(const item of [...news.map(x=>({...x,kindImage:'noticia'})),
-   ...media.map(x=>({...x,kindImage:'midia'}))].slice(0,25)){
-   const kind=item.kindImage as 'noticia'|'midia',title=String(item.headline||item.title||'');
-   const previous=old.find(r=>r.kind===kind&&r.item_id===item.id);
-   const age=previous?Date.now()-Date.parse(previous.attempted_at):Infinity;
-   if(previous&&(previous.status==='done'||previous.attempts>=3||
-    previous.status==='not_found'&&age<7*86400000||
-    previous.status==='processing'&&age<50*60000||
-    previous.status==='error'&&age<2*3600000))continue;
+  // A chamada do gatilho só pode processar o item específico que foi publicado.
+  // Crons processam a fila e, na ausência de eventos, completam o acervo antigo.
+  const events:Row[]=targeted?
+   await db(restId(eventKind as Kind,eventId)+'&select=kind,item_id,title,status,attempts,attempted_at'):
+   await db('agent_image_runs?select=kind,item_id,title,status,attempts,attempted_at&status=eq.queued&order=attempted_at.asc&limit=25');
+  const candidates:Array<{kind:Kind;id:string;title:string;queued:boolean}>=[];
+  for(const e of events)if(e.status==='queued')candidates.push({
+   kind:e.kind as Kind,id:e.item_id,title:String(e.title||''),queued:true
+  });
+  if(!targeted&&candidates.length<25){
+   // Reposição limitada para itens antigos ou falhas transitórias.
+   const [news,media,old]:[Row[],Row[],Row[]]=await Promise.all([
+    db('news_articles?select=id,headline&status=eq.published&image_url=is.null&order=published_at.desc&limit=12'),
+    db('watch_titles?select=id,title&is_published=eq.true&poster_url=is.null&order=updated_at.desc&limit=18'),
+    db('agent_image_runs?select=kind,item_id,status,attempts,attempted_at&order=attempted_at.desc&limit=500')
+   ]);
+   for(const item of [...news.map(x=>({...x,kindImage:'noticia'})),
+     ...media.map(x=>({...x,kindImage:'midia'}))]){
+    if(candidates.length>=25)break;
+    const kind=item.kindImage as Kind,id=String(item.id);
+    if(candidates.some(c=>c.kind===kind&&c.id===id))continue;
+    const prior=old.find(e=>e.kind===kind&&e.item_id===id);
+    const age=prior?Date.now()-Date.parse(prior.attempted_at):Infinity;
+    if(prior&&(prior.status==='done'||prior.attempts>=3||
+      prior.status==='queued'||prior.status==='processing'&&age<50*60000||
+      prior.status==='not_found'&&age<7*86400000||
+      prior.status==='error'&&age<2*3600000))continue;
+    // Um status processing expirado não é recuperado enquanto o worker anterior
+    // ainda pode estar ativo. Reclassifica só depois do limite de 50 minutos.
+    if(prior){
+     const reopened:Row[]=await db(restId(kind,id)+'&status=eq.'+prior.status,
+      'PATCH',{status:'queued',detail:'Reaberto para recuperação programada'},'return=representation');
+     if(!reopened?.length)continue;
+    }else{
+     await db('agent_image_runs?on_conflict=kind,item_id','POST',[{
+      kind,item_id:id,title:String(item.headline||item.title).slice(0,220),
+      status:'queued',attempts:0,detail:'Item do acervo aguardando imagens'
+     }],'resolution=ignore-duplicates');
+    }
+    candidates.push({kind,id,title:String(item.headline||item.title),queued:true});
+   }
+  }
+  let checked=0,done=0,notFound=0,failed=0,skipped=0;
+  for(const item of candidates.slice(0,targeted?1:25)){
+   const {kind,id}=item;
+   // O PATCH condicional é o lock: apenas uma execução recebe a linha.
+   const existing:Row[]=await db(restId(kind,id)+'&select=attempts,status,title');
+   const previous=existing[0];
+   if(!previous||previous.status!=='queued'){skipped++;continue;}
+   const attempt=(Number(previous.attempts)||0)+1;
+   const claimed:Row[]=await db(restId(kind,id)+'&status=eq.queued',
+    'PATCH',{status:'processing',attempts:attempt,attempted_at:new Date().toISOString(),
+      detail:'Íris iniciou a tarefa disparada pela publicação'},'return=representation');
+   if(!claimed?.length){skipped++;continue;}
    checked++;
-   await db('agent_image_runs?on_conflict=kind,item_id','POST',[{
-    kind,item_id:item.id,title:title.slice(0,220),status:'processing',
-    attempts:(previous?.attempts||0)+1,attempted_at:new Date().toISOString(),
-    detail:'Busca em fontes autorizadas'}],'resolution=merge-duplicates');
    try{
-    const asset=kind==='midia'&&item.kind==='Séries'
-      ?(await tvmaze(item))||(await commons(title,kind))
-      :await commons(title,kind);
-    if(!asset){
-     notFound++;
-     await db('agent_image_runs?kind=eq.'+kind+'&item_id=eq.'+item.id,'PATCH',
-      {status:'not_found',detail:'Sem fotografia com licença e identificação suficientes'});
+    let row:Row|undefined;
+    if(kind==='noticia'){
+     const entries:Row[]=await db('news_articles?id=eq.'+id+'&status=eq.published&select=id,headline,image_url,image_credit');
+     row=entries[0];
+    }else if(kind==='midia'){
+     const entries:Row[]=await db('watch_titles?id=eq.'+id+'&is_published=eq.true&select=id,title,kind,external_ref,source_url,poster_url,poster_credit');
+     row=entries[0];
+    }else{
+     const entries:Row[]=await db('matches?id=eq.'+id+'&is_published=eq.true&select=id,home_team,away_team');
+     row=entries[0];
+    }
+    if(!row){
+     await db(restId(kind,id),'PATCH',{status:'not_found',detail:'Publicação retirada antes de processar imagem'});
+     notFound++;continue;
+    }
+    const title=String(row.headline||row.title||[row.home_team,row.away_team].join(' x '));
+    if(kind==='jogo'){
+     const url='https://guiadehoje.site/api/capa?'+new URLSearchParams({tipo:'futebol',titulo:title}).toString();
+     await db(restId(kind,id),'PATCH',{status:'done',image_url:url,
+      credit:'Arte editorial ilustrativa: Guia de Hoje',
+      credit_url:'https://guiadehoje.site',detail:'Capa ilustrativa gerada automaticamente para a partida'});
+     done++;continue;
+    }
+    const imageUrl=kind==='noticia'?row.image_url:row.poster_url;
+    const credit=kind==='noticia'?row.image_credit:row.poster_credit;
+    if(imageUrl){
+     if(credit){
+      await db(restId(kind,id),'PATCH',{status:'done',image_url:imageUrl,
+       credit,detail:'Imagem e crédito já fornecidos na publicação'});
+      done++;
+     }else{
+      await db(restId(kind,id),'PATCH',{status:'not_found',
+       detail:'Imagem original já existente sem crédito verificado; requer revisão humana'});
+      notFound++;
+     }
      continue;
     }
-    const target=kind==='noticia'?'news_articles':'watch_titles';
+    const asset=kind==='midia'&&row.kind==='Séries'
+     ?(await tvmaze(row))||(await commons(title,'midia'))
+     :await commons(title,kind);
+    if(!asset){
+     notFound++;
+     await db(restId(kind,id),'PATCH',{status:'not_found',
+      detail:'Sem imagem reutilizável identificada; capa editorial ilustrativa disponível'});
+     continue;
+    }
+    const path=kind==='noticia'?'news_articles':'watch_titles';
     const patch=kind==='noticia'?
      {image_url:asset.url,image_alt:asset.alt,image_credit:asset.credit,image_credit_url:asset.creditUrl}:
      {poster_url:asset.url,poster_credit:asset.credit,poster_credit_url:asset.creditUrl};
-    const updated:Row[]=await db(target+'?id=eq.'+item.id,'PATCH',patch,'return=representation');
-    if(!updated?.length)throw Error('Publicação não atualizada');
-    await db('agent_image_runs?kind=eq.'+kind+'&item_id=eq.'+item.id,'PATCH',
-     {status:'done',image_url:asset.url,credit:asset.credit,credit_url:asset.creditUrl,
-      detail:'Imagem vinculada e créditos registrados'});
+    const updated:Row[]=await db(path+'?id=eq.'+id,'PATCH',patch,'return=representation');
+    if(!updated?.length)throw Error('Conteúdo não atualizado');
+    await db(restId(kind,id),'PATCH',{status:'done',image_url:asset.url,
+      credit:asset.credit,credit_url:asset.creditUrl,detail:'Imagem licenciada e crédito incluídos'});
     done++;
-   }catch(err){
+   }catch(error){
     failed++;
-    await db('agent_image_runs?kind=eq.'+kind+'&item_id=eq.'+item.id,'PATCH',
-     {status:'error',detail:String(err).slice(0,240)});
+    try{await db(restId(kind,id),'PATCH',{status:'error',detail:String(error).slice(0,240)});}catch{}
    }
   }
-  return json({status:'finished',checked,images_added:done,without_verified_license:notFound,errors:failed});
- }catch(err){return json({status:'error',message:String(err).slice(0,220)},500);}
+  return json({status:'finished',mode:targeted?'new_publication':'scheduled_recovery',
+   checked,images_added_or_verified:done,without_licensed_photo:notFound,
+   errors:failed,already_handled:skipped});
+ }catch(error){return json({status:'error',detail:String(error).slice(0,200)},500);}
 });
