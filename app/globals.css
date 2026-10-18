@@ -792,3 +792,33 @@ html {scroll-padding-top:104px;}
  .news-index-figure figcaption{font-size:10px!important}
  .news-index-row .index-copy h3{font-size:clamp(18px,5vw,24px)}
 }
+
+
+/* Para cinema e séries: fotografia/poster real ou ausência declarada.
+   Nunca simular cartaz oficial com tipografia gerada. */
+.media-no-photo{
+ display:flex;align-items:center;justify-content:center;
+ min-height:160px;box-sizing:border-box;padding:24px;
+ background:#f1f3f4;color:#65746e;border:1px solid #dce4e0;
+ text-align:center;font:600 12px/1.4 var(--font-body),sans-serif;
+ letter-spacing:.015em;border-radius:10px
+}
+.media-no-photo span{max-width:28ch}
+.watch-feature-cover.media-no-photo{min-height:260px}
+.media-archive-art.media-no-photo{min-height:205px;aspect-ratio:3/4}
+.media-detail-visual.media-no-photo{min-height:310px}
+.media-archive-art.has-cover{margin:0;background:transparent}
+.media-archive-art.has-cover img{height:auto!important;aspect-ratio:3/4;object-fit:cover}
+.media-archive-art.has-cover .media-cover-credit{
+ position:static!important;background:none!important;color:#65746e!important;
+ padding:8px 3px!important;font:500 10px/1.35 var(--font-body),sans-serif!important;
+ white-space:normal!important;overflow:visible!important;text-overflow:clip!important
+}
+.film-cover-real .cover-caption{
+ position:static!important;background:#182e2e!important;color:#eaf0ed!important;
+ padding:8px 10px!important;font:500 10px/1.4 var(--font-body),sans-serif!important;
+ white-space:normal!important;overflow:visible!important;text-overflow:clip!important
+}
+.media-detail-visual.has-image .visual-credit{
+ font-size:12px!important;line-height:1.5!important
+}
