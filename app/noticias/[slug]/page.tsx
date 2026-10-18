@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { getArticle } from '@/lib/content';
+import {editorialCover,editorialCoverCredit} from '@/lib/capas';
 import { siteName, siteUrl } from '@/lib/seo';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -66,10 +67,15 @@ export default async function ArticlePage({ params }: Props) {
             timeZone: 'America/Sao_Paulo', dateStyle: 'long', timeStyle: 'short',
           }).format(new Date(article.publishedAt))}
         </time>
-        {article.imageUrl && <figure className="article-figure">
-          <img src={article.imageUrl} alt={article.imageAlt || article.headline} />
-          {article.imageAlt && <figcaption>{article.imageAlt}</figcaption>}
-        </figure>}
+        <figure className="article-figure editorial-figure">
+          <img src={article.imageUrl||editorialCover('noticia',article.headline)}
+            alt={article.imageAlt||'Capa editorial ilustrativa de '+article.headline}/>
+          <figcaption>{article.imageUrl?
+            (article.imageCreditUrl?.startsWith('https://')?
+              <a href={article.imageCreditUrl} target="_blank" rel="noopener noreferrer">{article.imageCredit||'Crédito da imagem na fonte'} ↗</a>:
+              article.imageCredit||'Imagem de origem identificada'):
+            editorialCoverCredit}</figcaption>
+        </figure>
         <div className="article-content editorial-article-body">{article.body.split(/\n{2,}/).map((paragraph, i) =>
           paragraph.startsWith('## ')?<h2 key={i}>{paragraph.slice(3)}</h2>:
           <p key={i}>{paragraph}</p>)}</div>
