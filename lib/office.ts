@@ -7,7 +7,7 @@ import type {AgentId,AgentState,Delivery,OfficeAgent,OfficeSnapshot,OfficeMissio
 
 type NewsRow={id:string;slug:string;headline:string;category:string;updated_at:string};
 type MatchRow={id:string;home_team:string;away_team:string;league:string;updated_at:string};
-type WatchRow={id:string;title:string;kind:string;platform:string;updated_at:string};
+type WatchRow={id:string;title:string;kind:string;platform:string;updated_at:string;editorial_body:string|null;source_url:string|null};
 type Run={agentId:AgentId;time:string;doneAt:string|null;status:string;count:number;kind?:string;subject?:string;error?:string|null};
 type Job={jobname:string;schedule:string;active:boolean;last_run:string|null;last_status:string|null};
 type DesignAudit={run_id:number;status:string;started_at:string;finished_at:string|null;report:string|null;artifact_url:string|null;error_message:string|null;observations:unknown};
@@ -18,12 +18,12 @@ const recent=(time:string|null|undefined,minutes:number,now:number)=>
 const newer=(a:string|null,b:string|null)=>!a?b:!b?a:Date.parse(a)>=Date.parse(b)?a:b;
 const jobName:Record<AgentId,string>={
  futebol:'guia-de-hoje-coletor-sql',noticias:'guia-de-hoje-editorial',
- filmes:'guia-de-hoje-editorial',series:'guia-de-hoje-editorial',
+ filmes:'guia-de-hoje-editorial',series:'guia-de-hoje-luna-editorial',
  seo:'guia-de-hoje-redator-seo',design:'milly-semanal'
 };
 const taskName:Record<AgentId,string>={
  futebol:'Próxima checagem do coletor',noticias:'Próxima checagem editorial',
- filmes:'Próxima checagem editorial',series:'Próxima checagem editorial',
+ filmes:'Próxima checagem editorial',series:'Próxima publicação SEO da Luna',
  seo:'Próxima tentativa do redator SEO',design:'Próxima auditoria visual semanal'
 };
 function cronMatches(token:string,n:number){
@@ -182,7 +182,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  const [n,m,w,git]=await Promise.all([
   db.from('news_articles').select('id,slug,headline,category,updated_at').eq('status','published').order('updated_at',{ascending:false}).limit(15),
   db.from('matches').select('id,home_team,away_team,league,updated_at').eq('is_published',true).order('updated_at',{ascending:false}).limit(15),
-  db.from('watch_titles').select('id,title,kind,platform,updated_at').eq('is_published',true).order('updated_at',{ascending:false}).limit(60),
+  db.from('watch_titles').select('id,title,kind,platform,updated_at,editorial_body,source_url').eq('is_published',true).order('updated_at',{ascending:false}).limit(60),
   getGitHubOffice()
  ]);
  const news=(n.data||[]) as NewsRow[],matches=(m.data||[]) as MatchRow[],titles=(w.data||[]) as WatchRow[];
@@ -191,8 +191,14 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    time:x.updated_at,href:'/noticias/'+encodeURIComponent(x.slug),origin:'published' as const})),
   ...matches.map(x=>({id:'m-'+x.id,agentId:'futebol' as const,title:x.home_team+' × '+x.away_team,
    detail:x.league,time:x.updated_at,href:'/futebol',origin:'published' as const})),
-  ...titles.map(x=>({id:'w-'+x.id,agentId:(x.kind==='Filmes'?'filmes':'series') as AgentId,
-   title:x.title,detail:x.platform||x.kind,time:x.updated_at,href:'/filmes-series',origin:'published' as const}))
+  ...titles.map(x=>{
+   const indexed=Boolean(x.source_url&&x.editorial_body&&x.editorial_body.length>=350);
+   return {id:'w-'+x.id,agentId:(x.kind==='Filmes'?'filmes':'series') as AgentId,
+    title:(indexed?'Guia SEO publicado: ':'Catálogo atualizado: ')+x.title,
+    detail:indexed?'Ficha editorial pronta para indexação':
+     'Título coletado; matéria SEO ainda não publicada',
+    time:x.updated_at,href:'/filmes-series',origin:indexed?'published' as const:'catalog' as const};
+  })
  ];
  const deliveries=[...publications,...git.deliveries]
   .filter(x=>x.time&&!Number.isNaN(Date.parse(x.time)))
@@ -206,7 +212,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  if(secret){
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://kffzngznzjgioabtqxju.supabase.co';
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
-  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design]=await Promise.all([
+  const [fixture,editorial,writer,ai,schedule,evidence,drafts,activity,design,luna]=await Promise.all([
    admin.from('agent_fixture_requests').select('requested_at,processed_at,status,items_written,query_date,league_id,error_text').order('requested_at',{ascending:false}).limit(80),
    admin.from('agent_editorial_requests').select('kind,requested_at,processed_at,status,result_count,error_message').order('requested_at',{ascending:false}).limit(35),
    admin.from('editorial_writer_requests').select('created_at,processed_at,state').order('created_at',{ascending:false}).limit(20),
@@ -215,7 +221,8 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    admin.from('editorial_evidence').select('article_id').limit(80),
    admin.from('news_articles').select('id,headline').eq('status','draft').limit(150),
    admin.from('office_agent_activity').select('agent_id,status,task,next_task,updated_at,expires_at,evidence_url').limit(20),
-   admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8)
+   admin.from('design_audits').select('run_id,status,started_at,finished_at,report,artifact_url,error_message,observations').order('started_at',{ascending:false}).limit(8),
+   admin.from('luna_editorial_runs').select('title_id,slot_key,state,started_at,finished_at,word_count,detail').order('started_at',{ascending:false}).limit(15)
   ]);
   telemetry=!fixture.error&&!editorial.error&&!writer.error&&!ai.error&&!schedule.error;
   if(!fixture.error)for(const x of fixture.data||[]){
@@ -251,6 +258,14 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
    for(const x of schedule.data as Job[])if(x&&typeof x.jobname==='string')jobs.push(x);
   }
   if(!activity.error)for(const row of (activity.data||[]) as Heartbeat[])heartbeats.push(row);
+  if(!luna.error)for(const x of luna.data||[]){
+   const status=x.state==='published'?'ok':
+    x.state==='error'?'error':x.state==='running'?'running':'needs_review';
+   runs.push({agentId:'series',time:x.started_at,doneAt:x.finished_at,
+    status,count:x.state==='published'?x.word_count||0:0,
+    subject:x.state==='published'?'Publicar ficha original SEO da série':
+      'Preparar e revisar a matéria SEO com fonte TVmaze',error:x.detail||null});
+  }
   if(!design.error)for(const audit of (design.data||[]) as DesignAudit[]){
    designAudits.push(audit);
    const status=audit.status==='completed'?'ok':audit.status==='error'?'error':
