@@ -35,6 +35,8 @@ export type NewsItem = {
   category: string;
   imageUrl?: string;
   imageAlt?: string;
+  imageCredit?: string;
+  imageCreditUrl?: string;
   isAggregated?: boolean;
   seoTitle?: string;
   seoDescription?: string;
@@ -57,6 +59,8 @@ export type WatchTitle = {
   platform: string;
   title: string;
   posterUrl?: string;
+  posterCredit?: string;
+  posterCreditUrl?: string;
   sourceUrl?: string;
   watchUrl?: string;
   availabilityStatus?: string;
