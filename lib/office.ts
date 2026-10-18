@@ -61,7 +61,7 @@ function missionFor(id:AgentId,runs:Run[],nextAt:string|null,queue:number,now:nu
  const todayRuns=fresh?sorted.filter(r=>Math.abs(Date.parse(r.time)-Date.parse(first.time))<35*60000):[];
  const finished=todayRuns.filter(r=>Boolean(r.doneAt)&&['ok','published','needs_review','error','failed'].includes(r.status));
  const completed=finished.filter(r=>['ok','published'].includes(r.status));
- const failed=todayRuns.filter(r=>['error','failed'].includes(r.status));
+ const failed=todayRuns.filter(r=>['error','failed','needs_review'].includes(r.status));
  const processed=completed.reduce((sum,r)=>sum+(r.count||0),0);
  const label=(when:string|null)=>when?new Intl.DateTimeFormat('pt-BR',
   {timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date(when)):'Sem horário';
@@ -128,8 +128,9 @@ function classify(id:AgentId,items:Delivery[],runs:Run[],jobs:Job[],queue:number
  if(run?.status==='running'||run?.status==='processing'||run?.status==='in_progress'){
   if(recent(run.time,20,now)){state='working';activity='Execução em andamento, registrada no banco';}
  }
- if(state!=='working'&&['error','failed'].includes(run?.status||'')){
-  state='error';activity='Última execução registrou erro';
+ if(state!=='working'&&['error','failed','needs_review'].includes(run?.status||'')){
+  state='error';activity=run?.status==='needs_review'?
+   'Matéria reprovada na revisão: não foi publicada':'Última execução falhou: nenhuma publicação confirmada';
  }
  if(state==='waiting'&&run?.status==='pending'&&recent(run.time,25,now)){
   activity='Solicitação na fila aguardando conclusão';
