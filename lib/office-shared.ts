@@ -6,6 +6,7 @@ export const profiles=[
  {id:'series',name:'Luna',job:'Curadoria de séries',desk:'04',color:'#7dc5ad',hair:'#30384a',skin:'#bc8269',mission:'Conferir séries e a programação'},
  {id:'seo',name:'Otto',job:'Redação & SEO',desk:'05',color:'#e9c36e',hair:'#543e37',skin:'#dca77c',mission:'Preparar textos editoriais e SEO'},
  {id:'design',name:'Milly',job:'Designer do site',desk:'06',color:'#f78cbb',hair:'#211927',skin:'#814936',mission:'Auditar o visual e a experiência mobile do site semanalmente'},
+ {id:'imagens',name:'Íris',job:'Imagens & créditos',desk:'07',color:'#75bed6',hair:'#232940',skin:'#c89070',mission:'Encontrar imagens licenciadas, identificar autores e preparar capas ilustrativas quando não houver foto segura'},
 ] as const;
 export type AgentId=typeof profiles[number]['id'];
 export type AgentState='working'|'recent'|'waiting'|'error'|'unconnected';
