@@ -822,3 +822,9 @@ html {scroll-padding-top:104px;}
 .media-detail-visual.has-image .visual-credit{
  font-size:12px!important;line-height:1.5!important
 }
+
+
+.news-brief-figure{display:block;max-width:175px;margin:0 0 10px;background:transparent}
+.news-brief-figure img{display:block;width:100%;max-width:none;margin:0;aspect-ratio:16/9;object-fit:cover;border-radius:7px}
+.news-brief-figure figcaption{font:500 10px/1.4 var(--font-body),sans-serif;color:#63776c;margin-top:5px}
+@media(max-width:700px){.news-brief-figure{max-width:135px}.news-brief-figure figcaption{font-size:9px}}
