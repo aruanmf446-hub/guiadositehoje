@@ -4,7 +4,7 @@ type Row=Record<string,any>;
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
  .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const words=(s:string)=>normalize(s).split(' ').filter(w=>w.length>=4&&![
+const words=(s:string)=>normalize(s).split(' ').filter(w=>(w.length>=4||w==='nhs')&&![
  'para','sobre','entre','como','depois','antes','noticia','brasil','serie','filme','movie','series'
 ].includes(w));
 const strip=(s:string)=>s.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ')
