@@ -1,7 +1,7 @@
 // Luna: uma publicação editorial verificada por turno; jamais finge que catálogo é SEO.
 type Row=Record<string,any>;
 const ACCOUNT='5070a936fccb62cf5e8f0e89dab12554';
-const MODEL='@cf/meta/llama-3.1-8b-instruct-fp8-fast';
+const MODEL='@cf/mistralai/mistral-small-3.1-24b-instruct';
 const reply=(data:Row,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 function strip(x:string){return x.replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/\s+/g,' ').trim();}
 function parse(x:string):Row{
@@ -113,7 +113,8 @@ Deno.serve(async req=>{
   const unsupported=(body.match(/\b(?:19|20)\d{2}\b/g)||[]).some(y=>!JSON.stringify(facts).includes(y));
   const invalid=body.length<380||body.length>1450||words<55||seoTitle.length<15||
    seoTitle.length>105||description.length<85||description.length>190||
-   copy||unsupported||/disponível no brasil|assista no brasil/i.test(body)&&facts.brazil==='não confirmada';
+   copy||unsupported||/obra-prima|imperdível|efeitos visuais impressionantes|trilha sonora|aclamad[oa]|premiad[oa]/i.test(body)||
+   /disponível no brasil|assista no brasil/i.test(body)&&facts.brazil==='não confirmada';
   if(invalid){await finish('needs_review','Falha nos filtros de texto, fatos ou originalidade',words);
    return reply({status:'needs_review',slot,words});}
   const saved:Row[]=await db('watch_titles?id=eq.'+item.id,'PATCH',{
