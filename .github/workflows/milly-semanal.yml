@@ -2,6 +2,7 @@ name: Milly — revisão visual semanal
 on:
   schedule:
     - cron: '20 13 * * 1' # Segunda-feira, 10h20 de Brasília (UTC-3)
+    - cron: '40 15 * * 1' # Segunda tentativa 12h40; Supabase ignora semana já entregue
   workflow_dispatch:
   push:
     paths:
