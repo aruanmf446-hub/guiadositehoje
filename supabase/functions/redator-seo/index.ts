@@ -67,7 +67,10 @@ Deno.serve(async req=>{
  // A janela é o dia de Brasília (UTC-3), não a virada do dia em UTC.
  const brNow=new Date(Date.now()-3*60*60*1000);
  const startBrDay=new Date(Date.UTC(brNow.getUTCFullYear(),brNow.getUTCMonth(),brNow.getUTCDate(),3));
- const daily:Row[]=await db("editorial_ai_runs?select=article_id,state&created_at=gte."+startBrDay.toISOString());
+ const allRuns:Row[]=await db("editorial_ai_runs?select=article_id,state,model&created_at=gte."+startBrDay.toISOString());
+ // A recuperação excepcional do acervo não consome as duas vagas diárias
+ // do redator regular; limitações permanecem para artigos novos.
+ const daily=allRuns.filter(x=>!String(x.model||"").startsWith("news-backfill"));
  if(daily.filter(x=>x.state==="published").length>=2)
    return response({status:"daily_publication_limit",published:0});
  if(daily.length>=4)
