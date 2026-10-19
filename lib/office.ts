@@ -363,9 +363,12 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   if(checked.has(key))continue;
   checked.add(key);
   // Não manter o alarme antigo do Otto depois de uma publicação real mais recente.
-  if(row.agent_id==='seo'&&
+  if(row.agent_id==='seo'&&(
     deliveries.some(d=>d.agentId==='seo'&&d.origin==='published'&&
-      Date.parse(d.time)>Date.parse(row.checked_at)))continue;
+      Date.parse(d.time)>Date.parse(row.checked_at))||
+    runs.some(r=>r.agentId==='seo'&&['ok','published'].includes(r.status)&&
+      Date.parse(r.doneAt||r.time)>Date.parse(row.checked_at))
+   ))continue;
   if(['missed','retrying','not_published','needs_review','error'].includes(row.status)){
    const name=({futebol:'Bento',noticias:'Nina',filmes:'Theo',series:'Luna',
     seo:'Otto',design:'Milly',imagens:'Íris'} as Record<string,string>)[row.agent_id]||row.agent_id;
@@ -375,7 +378,7 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
  const notice=failures.length?'Algumas publicações não puderam ser consultadas.':
   healthWarnings.length?
    'ALERTA DE AGENTES: '+healthWarnings.slice(0,3).join('; ')+
-    '. O sistema registrou o problema e executa recuperação limitada por turno.':
+    '. Consulte as pendências da rodada; recuperações e publicações posteriores são verificadas automaticamente.':
   editorialDelayed&&queue>0?
    'ALERTA EDITORIAL: nenhuma notícia nova foi publicada nas últimas 24 horas. Há '+queue+
    ' pauta(s) com fonte esperando a redação. Coleta concluída não é publicação.':null;
