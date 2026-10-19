@@ -20,12 +20,12 @@ const newer=(a:string|null,b:string|null)=>!a?b:!b?a:Date.parse(a)>=Date.parse(b
 const jobName:Record<AgentId,string>={
  futebol:'guia-de-hoje-coletor-sql',noticias:'guia-de-hoje-editorial',
  filmes:'guia-de-hoje-editorial',series:'guia-de-hoje-luna-editorial',
- seo:'guia-de-hoje-redator-seo',design:'milly-semanal',imagens:'guia-de-hoje-imagens'
+ seo:'guia-de-hoje-otto-redacao',design:'milly-semanal',imagens:'guia-de-hoje-imagens'
 };
 const taskName:Record<AgentId,string>={
  futebol:'Próxima checagem do coletor',noticias:'Próxima checagem editorial',
  filmes:'Próxima checagem editorial',series:'Próxima publicação SEO da Luna',
- seo:'Próxima tentativa do redator SEO',design:'Próxima auditoria visual semanal',
+ seo:'Próxima pauta com fonte verificada — fila contínua',design:'Próxima auditoria visual semanal',
  imagens:'Próxima busca de imagens e créditos'
 };
 function cronMatches(token:string,n:number){
