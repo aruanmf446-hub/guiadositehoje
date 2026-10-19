@@ -362,6 +362,10 @@ export async function getOfficeSnapshot():Promise<OfficeSnapshot>{
   const key=row.agent_id+'/'+row.phase;
   if(checked.has(key))continue;
   checked.add(key);
+  // Não manter o alarme antigo do Otto depois de uma publicação real mais recente.
+  if(row.agent_id==='seo'&&
+    deliveries.some(d=>d.agentId==='seo'&&d.origin==='published'&&
+      Date.parse(d.time)>Date.parse(row.checked_at)))continue;
   if(['missed','retrying','not_published','needs_review','error'].includes(row.status)){
    const name=({futebol:'Bento',noticias:'Nina',filmes:'Theo',series:'Luna',
     seo:'Otto',design:'Milly',imagens:'Íris'} as Record<string,string>)[row.agent_id]||row.agent_id;
